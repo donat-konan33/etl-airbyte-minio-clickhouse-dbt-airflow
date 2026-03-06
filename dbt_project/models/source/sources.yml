@@ -30,6 +30,33 @@ sources:
           - name: dep_status
             description: the status rural or urbain of the department
 
+      - name: raw_depcode_
+        identifier: raw_depcode_
+        description: department with their, an unique code per department
+        columns:
+          - name: geo_point_2d
+            description: Geographical Point, currently in bytes
+          - name: geo_shape
+            description: Geographical Shape, currently in bytes
+          - name: reg_name
+            description: name of region of the department
+          - name: reg_code
+            description: code of region
+          - name: dep_name_upper
+            description: department name set to upper
+          - name: dep_current_code
+            description: code of department
+            tests:
+              - unique
+              - not_null
+          - name: dep_status
+            description: the status rural or urbain of the department
+          - name : department
+            description: Name of department that is the same use to call data via visual crossing api (can help joining table)
+          - name : dep_normalized
+            description : Name of department normalized
+
+
       - name: latest_weather
         identifier: raw_weather
         description: table gathering all the most weather metrics recorded
@@ -221,3 +248,161 @@ sources:
             description: Average solar energy in kWh/m2 (nullable float)
           - name: avg_solarradiation
             description: Average solar radiation (nullable float)
+
+
+      - name: latest_weather_
+        identifier: raw_weather_
+        description: >
+          Table containing the latest available weather observations and daily aggregates
+          for French departments, including temperature, precipitation, wind, solar radiation
+          and atmospheric metrics.
+
+        columns:
+
+          - name: id
+            description: >
+              Unique identifier representing a single extraction batch for a given set
+              of departments (UUID generated during ingestion).
+
+          - name: resolvedAddress
+            description: >
+              Fully resolved location name returned by the API, usually including
+              the department name and its region.
+
+          - name: address
+            description: >
+              Raw address or location string used in the API request.
+
+          - name: latitude
+            description: Latitude of the weather observation location.
+
+          - name: longitude
+            description: Longitude of the weather observation location.
+
+          - name: datetime
+            description: >
+              Date or datetime of the weather observation, currently stored as a string.
+
+          - name: datetimeEpoch
+            description: >
+              Unix timestamp (number of seconds since 1970-01-01) corresponding
+              to the observation date.
+
+          - name: tempmax
+            description: Maximum temperature recorded for the day (°C).
+
+          - name: tempmin
+            description: Minimum temperature recorded for the day (°C).
+
+          - name: temp
+            description: Mean temperature for the day (°C).
+
+          - name: feelslikemax
+            description: Maximum perceived temperature for the day (°C).
+
+          - name: feelslikemin
+            description: Minimum perceived temperature for the day (°C).
+
+          - name: feelslike
+            description: Average perceived temperature for the day (°C).
+
+          - name: dew
+            description: >
+              Dew point temperature (°C), indicating the temperature at which air
+              becomes saturated with moisture.
+
+          - name: humidity
+            description: Relative humidity of the air (%).
+
+          - name: precip
+            description: Total precipitation recorded for the day (mm).
+
+          - name: precipprob
+            description: Probability of precipitation (%).
+
+          - name: precipcover
+            description: Percentage of the day during which precipitation occurred (%).
+
+          - name: preciptype
+            description: >
+              Type of precipitation recorded (e.g. rain, snow, hail).
+
+          - name: snow
+            description: Snowfall amount recorded for the day (cm).
+
+          - name: snowdepth
+            description: Average snow depth on the ground for the day (cm).
+
+          - name: windgust
+            description: >
+              Maximum wind gust speed recorded over a short time period (kph).
+
+          - name: windspeed
+            description: Average wind speed (kph).
+
+          - name: winddir
+            description: >
+              Wind direction expressed in degrees from north
+              (0° = North, 90° = East, 180° = South, 270° = West).
+
+          - name: pressure
+            description: >
+              Atmospheric pressure adjusted to sea level, expressed in millibars (mb).
+
+          - name: cloudcover
+            description: Percentage of cloud cover (%).
+
+          - name: visibility
+            description: Visibility distance in daylight conditions (km).
+
+          - name: solarradiation
+            description: >
+              Instantaneous solar radiation power measured at the observation time (W/m²).
+
+          - name: solarenergy
+            description: >
+              Total solar energy accumulated over the day.
+
+          - name: uvindex
+            description: >
+              Ultraviolet (UV) exposure index ranging from 0 to 10.
+
+          - name: severerisk
+            description: >
+              Risk score between 0 and 100 indicating the likelihood of severe
+              convective weather events (e.g. thunderstorms, hail).
+
+          - name: sunrise
+            description: Sunrise time for the observation location.
+
+          - name: sunriseEpoch
+            description: Unix timestamp corresponding to sunrise time.
+
+          - name: sunset
+            description: Sunset time for the observation location.
+
+          - name: sunsetEpoch
+            description: Unix timestamp corresponding to sunset time.
+
+          - name: moonphase
+            description: Moon phase expressed as a fraction between 0 and 1.
+
+          - name: conditions
+            description: >
+              High-level weather condition label (e.g. sunny, cloudy, rainy).
+
+          - name: description
+            description: Detailed textual description of the weather conditions.
+
+          - name: icon
+            description: Icon code representing the weather conditions.
+
+          - name: stations
+            description: >
+              Weather stations used to generate the observations.
+
+          - name: source
+            description: Data source identifier.
+
+          - name: department
+            description: Name of the French department associated with the weather data.

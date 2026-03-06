@@ -3,8 +3,8 @@ sys.path.append(os.path.dirname(__file__))
 
 from sqlalchemy.orm import Session
 import pandas as pd
-from sqlalchemy import text, func
-from models import mart_newdata, archived_data
+from sqlalchemy import text, func, desc, asc
+from models import mart_newdata, archived_data, mart_today_stats, mart_next_3_days_stats, mart_today, mart_next_3_days
 from sqlalchemy.ext.asyncio import AsyncSession, AsyncConnection # for later use with FastAPI and async calls
 
 
@@ -177,3 +177,55 @@ def get_entire_region_data(db: Session, region:str):
 def get_ml_data(db: Session):
     """get all available data that can be useful for training forecasting model"""
     return db.query(archived_data).all()
+
+
+def get_today_stats(db: Session):
+    """Get today's weather stats for all departments"""
+    return db.query(mart_today_stats).all()
+
+
+def get_next_3_days_stats(db: Session, department: str):
+    """Get next 3 days weather forecast for a specific department"""
+    return db.query(mart_next_3_days_stats).all()
+
+
+def get_next_3_days_data(db: Session):
+    """Get next 3 days weather data for all departments"""
+    return db.query(mart_next_3_days).all()
+
+
+def get_today_data(db: Session):
+    """Get today's weather data for all departments"""
+    return db.query(mart_today).all()
+
+def get_stats(
+    db: Session,
+    level: str = "department",
+    period: str = "today",
+    top: bool = True
+
+):
+
+    # choisir le modèle ORM selon period
+    Model = mart_today if period == "today" else mart_next_3_days
+
+    # champ de group by selon level
+    group_field = Model.c.reg_name if level == "region" else Model.c.department
+
+    # requête ORM
+    query = (
+        db.query(
+            group_field.label("geo_name"),
+            func.round(func.avg(Model.c.temp), 1).label("temperature"), #°C
+            func.round(func.avg(Model.c.humidity), 1).label("humidity"), #%
+            func.round(func.avg(Model.c.windspeed), 1).label("windspeed"), #kph
+            func.round(func.avg(Model.c.pressure), 1).label("pressure"), #mb
+            func.round(func.avg(Model.c.cloudcover), 1).label("cloudcover"), #%
+            func.round(func.avg(Model.c.solarradiation), 1).label("solarradiation"), #W/m²
+            func.round(func.avg(Model.c.solarenergy_kwhpm2), 2).label("solarenergy"), #kWh/m²
+        )
+        .group_by(group_field)
+    )
+
+    result = query.all()  # ORM → récupère tous les résultats
+    return [dict(row._mapping) for row in result]  # row._mapping permet de transformer en dict

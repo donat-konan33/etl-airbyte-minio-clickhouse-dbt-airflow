@@ -3,6 +3,7 @@
 import pathlib
 from typing import List, Optional
 import pandas as pd
+import unicodedata, re
 
 
 class GetExistingPaths:
@@ -60,3 +61,27 @@ class TransformData:
         df = df[['geo_point_2d', 'geo_shape', 'reg_code', 'reg_name',
                     'dep_current_code', 'dep_name_upper', 'dep_status']]
         df.to_parquet(staging_path, index=False)
+
+    @staticmethod
+    def normalize(data: pd.Series):
+        """
+        Parameters:
+        -----------
+            data pandas column to noramlize
+
+        Returns:
+        --------
+            Normalize data
+        """
+
+        return (
+            data.astype(str)
+            .str.normalize("NFD")                 # split letters and accents
+            .str.encode("ascii", "ignore")        # remove accents
+            .str.decode("utf-8")
+            .str.replace("-", " ", regex=False)   # replace dash
+            .str.replace("'", " ", regex=False)   # remove apostrophes
+            .str.replace(r"\s+", " ", regex=True) # remove double spaces
+            .str.strip()                          # remove leading/trailing spaces
+            .str.upper()
+        )

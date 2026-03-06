@@ -8,7 +8,7 @@ from database import engine
 from crud import *
 from schemas import *
 from typing import List
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
 import uvicorn
 
 tags = [
@@ -155,6 +155,31 @@ def _get_temp_data(department: str, db: Session = Depends(get_db)):
     if not data:
         raise HTTPException(status_code=404, detail="Entire Department data not found")
     return data
+
+# OPTIMIZED ENDPOINTS FOR DASHBOARDING PURPOSES
+# ➡️ Le frontend n'a plus rien à deviner
+# ➡️ Tu offres un contrat API stable
+# ➡️ Tu peux changer tes vues sans casser le frontend
+
+@app.get("/analytics/stats")
+def _get_stats(
+        level: str = Query("department", description="region or department"),
+        period: str = Query("today", description="today or next3days"),
+        top: bool = Query(True, description="True for top3, False for bottom3"),
+        db: Session = Depends(get_db),
+):
+
+    # sécurisation des paramètres
+    if level not in ("region", "department"):
+        raise HTTPException(status_code=400, detail="level must be 'region' or 'department'")
+    if period not in ("today", "next3days"):
+        raise HTTPException(status_code=400, detail="period must be 'today' or 'next3days'")
+
+    data = get_stats(level=level, period=period, top=top, db=db)
+    if not data:
+        raise HTTPException(status_code=404, detail="Stats data not found")
+    return data
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8005)

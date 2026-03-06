@@ -1,13 +1,18 @@
 [tool.poetry]
 name = "weather-database-apirest"
 version = "0.1.0"
-description = ""
+description = "api rest and airflow project for weather database"
 authors = ["donatien konan <donatien.konan.pro@gmail.com>"]
 readme = "README.md"
-package-mode = false
+
+packages = [
+  {include="python", from="project_functions"}
+]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.13"
+fastparquet = "2024.2.0"
+aiohttp = "^3.13.3"
 
 [tool.poetry.group.airflow.dependencies]
 pendulum = "*"
@@ -23,6 +28,7 @@ minio = "^7.2.15" # MinIO Python SDK
 shapely = "2.0.6"
 sqlalchemy = "1.4.54"
 #airflow-clickhouse-plugin = "1.4.0" need fab ==> auth.manager for airflow 3.x.x
+fastparquet = "2024.2.0"
 
 [tool.poetry.group.api.dependencies]
 fastapi = "^0.116.1"

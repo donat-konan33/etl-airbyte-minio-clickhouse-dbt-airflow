@@ -1,0 +1,45 @@
+#! /usr/bin/env python
+
+# Create the CSV file with the requested French departments and their codes
+import pandas as pd
+from pathlib import Path
+
+project_root = Path().resolve()
+
+data = [
+("Tarn","81"),("Aude","11"),("Gard","30"),("Hérault","34"),("Loire","42"),
+("Val-d'Oise","95"),("Seine-et-Marne","77"),("Paris","75"),("Seine-Maritime","76"),
+("Eure","27"),("Aveyron","12"),("Haute-Garonne","31"),("Gers","32"),("Lot","46"),
+("Hautes-Pyrénées","65"),("Lot-et-Garonne","47"),("Pyrénées-Atlantiques","64"),
+("Alpes-Maritimes","06"),("Tarn-et-Garonne","82"),("Ariège","09"),("Lozère","48"),
+("Pyrénées-Orientales","66"),("Corrèze","19"),("Creuse","23"),("Haute-Vienne","87"),
+("Charente","16"),("Charente-Maritime","17"),("Dordogne","24"),("Gironde","33"),
+("Landes","40"),("Loire-Atlantique","44"),("Maine-et-Loire","49"),("Vendée","85"),
+("Deux-Sèvres","79"),("Vienne","86"),("Yvelines","78"),("Essonne","91"),
+("Hauts-de-Seine","92"),("Seine-Saint-Denis","93"),("Val-de-Marne","94"),
+("Ain","01"),("Ardèche","07"),("Drôme","26"),("Isère","38"),("Vaucluse","84"),
+("Calvados","14"),("Manche","50"),("Orne","61"),("Sarthe","72"),("Mayenne","53"),
+("Yonne","89"),("Côtes-d'Armor","22"),("Finistère","29"),("Ille-et-Vilaine","35"),
+("Morbihan","56"),("Oise","60"),("Somme","80"),("Pas-de-Calais","62"),("Nord","59"),
+("Meurthe-et-Moselle","54"),("Haute-Loire","43"),("Puy-de-Dôme","63"),
+("Côte-d'Or","21"),("Nièvre","58"),("Saône-et-Loire","71"),("Rhône","69"),
+("Savoie","73"),("Haute-Savoie","74"),("Allier","03"),("Cantal","15"),
+("Martinique","972"),("Guyane","973"),("Mayotte","976"),
+("Loiret","45"),("Alpes-de-Haute-Provence","04"),("Hautes-Alpes","05"),
+("Bouches-du-Rhône","13"),("Var","83"),("Meuse","55"),("Moselle","57"),
+("Vosges","88"),("Bas-Rhin","67"),("Haut-Rhin","68"),("Aube","10"),("Marne","51"),
+("Haute-Marne","52"),("Ardennes","08"),("Aisne","02"),("Doubs","25"),("Jura","39"),
+("Haute-Saône","70"),("Territoire de Belfort","90"),
+("Guadeloupe","971"),("Cher","18"),("Eure-et-Loir","28"),("Indre","36"),
+("Indre-et-Loire","37"),("Loir-et-Cher","41"),
+
+# Corse split into two departments
+("Corse-du-Sud","2A"),("Corse","2B")
+]
+
+df = pd.DataFrame(data, columns=["department","dep_current_code"])
+
+path = project_root / "data/location/departements_france_selection.csv"
+df.to_csv(path, index=False, encoding="utf-8")
+
+print(f"Data stored under {path}")

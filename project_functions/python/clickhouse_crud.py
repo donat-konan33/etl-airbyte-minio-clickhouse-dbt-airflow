@@ -4,16 +4,8 @@ from project_functions.python.clickhouse_client import ClickHouseClient
 from typing import Union, Optional
 import pandas as pd
 import logging
-import json
-import shapely.wkb
-from shapely import wkt
-import textwrap # for formatting SQL queries
 
-def wkb_to_wkt(x):
-    try:
-        return shapely.wkb.loads(x).wkt
-    except Exception:
-        return None
+import textwrap # for formatting SQL queries
 
 # Configuration for connecting to ClickHouse
 def get_clickhouse_client() -> ClickHouseClient:
@@ -45,6 +37,10 @@ class ClickHouseQueries:
         raw_weather table has columns 'preciptype', 'stations' contain lists, but ClickHouse does not support list type.
         Therefore, we convert these columns to string before loading.
         if raw_weather table is to be created, set check_if_exists to True otherwise False.
+
+        Parameters:
+        -------------
+            data : geojson data should have been handled
         """
         try:
             if data.empty:
@@ -64,20 +60,7 @@ class ClickHouseQueries:
         # Ensure the ClickHouse client is initialized
         try:
             print(f"Loading data into ClickHouse table {table_name}...")
-            # convert preciptype and stations columns because clickhouse does not support list type
-            for col in data.select_dtypes(include=["object"]).columns:
-                data[col] = data[col].astype("string")
-
-            if data.columns.isin(["geo_point_2d", "geo_shape"]).any(): # check whether at least one of the columns is in the DataFrame.columns Index
-                # Need to convert data types for ClickHouse compatibility # transform type according to the target table in clickhousedb before loading it to.
-                # for check_if_exists equals False, only if depcode table is input as data argument
-                data["geo_point_2d"] = data["geo_point_2d"].apply(wkb_to_wkt)
-                data["geo_shape"] = data["geo_shape"].apply(wkb_to_wkt)
-                data["geo_shape"] = data["geo_shape"].apply(lambda w: wkt.loads(w).__geo_interface__ if w else None)  # Convert to GeoJSON format
-                data["geo_shape"] = data["geo_shape"].apply(lambda x: json.dumps(x) if isinstance(x, dict) else x)
-                for col in ["reg_name", "reg_code", "dep_name_upper", "dep_current_code", "dep_status"]:
-                    data[col] = data[col].apply(lambda x: str(x) if not pd.isna(x) else x)
-
+            # be ensure geojson data were transform before
             if is_to_truncate:
                 client.get_conn().command(f"TRUNCATE TABLE {table_name}")  # Truncate the table if required
                 client.get_conn().insert_df(table=table_name, df=data)

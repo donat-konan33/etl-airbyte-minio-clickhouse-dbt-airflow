@@ -87,7 +87,7 @@ class MinioUtils:
         data = pd.DataFrame(records).explode("days")
         records = []
         for _, row in data.iterrows():
-            #day_dict = {key: row["days"][key] for key in row["days"].keys()}
+
             record = {
             "_airbyte_ab_id": row["_airbyte_ab_id"],
             "latitude": row["latitude"],

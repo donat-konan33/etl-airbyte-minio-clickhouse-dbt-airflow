@@ -12,6 +12,12 @@ Base = get_declarative_base(metadata=metadata)
 
 archived_data = Table('archived_data', metadata, autoload=True) # we must reflect table from database
 
+mart_today = Table('mart_today', metadata, autoload=True)
+mart_next_3_days = Table('mart_next_3_days', metadata, autoload=True)
+mart_today_stats = Table('mart_today_stats', metadata, autoload=True)
+mart_next_3_days_stats = Table('mart_next_3_days_stats', metadata, autoload=True)
+
+
 class Users(Base):
     """class representing the user table"""
     __tablename__ = "users"
