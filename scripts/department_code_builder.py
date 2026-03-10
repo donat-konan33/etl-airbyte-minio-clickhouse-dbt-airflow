@@ -34,12 +34,16 @@ data = [
 ("Indre-et-Loire","37"),("Loir-et-Cher","41"),
 
 # Corse split into two departments
-("Corse-du-Sud","2A"),("Corse","2B")
+("Corse-du-Sud","2A"),("Haute Corse","2B")
 ]
 
-df = pd.DataFrame(data, columns=["department","dep_current_code"])
+def main():
+    df = pd.DataFrame(data, columns=["department","dep_current_code"])
 
-path = project_root / "data/location/departements_france_selection.csv"
-df.to_csv(path, index=False, encoding="utf-8")
+    path = project_root / "data/location/departements_france_selection.csv"
+    df.to_csv(path, index=False, encoding="utf-8")
 
-print(f"Data stored under {path}")
+    print(f"Data stored under {path}")
+
+if __name__ == "__main__":
+    main()

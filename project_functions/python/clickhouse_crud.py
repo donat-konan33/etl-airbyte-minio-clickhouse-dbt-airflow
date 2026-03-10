@@ -1,6 +1,6 @@
 import os
-from project_functions.python.clickhouse_hook import ClickHouseHook
-from project_functions.python.clickhouse_client import ClickHouseClient
+from python.clickhouse_hook import ClickHouseHook
+from python.clickhouse_client import ClickHouseClient
 from typing import Union, Optional
 import pandas as pd
 import logging
