@@ -2,9 +2,12 @@
   config(
     materialized='table',
     engine='ReplacingMergeTree',
-    order_by='(dates, department)',
-    partition_by='toYYYYMM(dates)',  -- Partitioning by month for better performance on date queries
-    version='timestamp'  -- to explore for more understanding
+    post_hook="
+      CREATE TABLE IF NOT EXISTS {{ this }}
+      ENGINE = ReplacingMergeTree(version)
+      PARTITION BY toYYYYMM(dates)
+      ORDER BY (dates, department)
+    "
   )
 }}
 
