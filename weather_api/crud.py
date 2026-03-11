@@ -4,57 +4,57 @@ sys.path.append(os.path.dirname(__file__))
 from sqlalchemy.orm import Session
 import pandas as pd
 from sqlalchemy import text, func, desc, asc
-from models import mart_newdata, archived_data, mart_today_stats, mart_next_3_days_stats, mart_today, mart_next_3_days
+from models import mart_newdata_, archived_data, mart_today_stats, mart_next_3_days_stats, mart_today, mart_next_3_days
 from sqlalchemy.ext.asyncio import AsyncSession, AsyncConnection # for later use with FastAPI and async calls
 
 
 def get_data(db: Session):
     """Get daily extracted data from the table"""
-    return db.query(mart_newdata).all()
+    return db.query(mart_newdata_).all()
 
 
 def get_temp_data(db: Session, department: str):
     """Get temperature data like temp, fileslikemin, fileslikemax and feelslike
     """
-    return db.query(mart_newdata) \
+    return db.query(mart_newdata_) \
             .with_entities(
-                mart_newdata.c.dates,
-                mart_newdata.c.weekday_name,
-                mart_newdata.c.department,
-                mart_newdata.c.temp,
-                mart_newdata.c.tempmin,
-                mart_newdata.c.tempmax,
-                mart_newdata.c.feelslike,
-                mart_newdata.c.feelslikemin,
-                mart_newdata.c.feelslikemax,
-                mart_newdata.c.descriptions
-            ).where(mart_newdata.c.department == department) \
-            .order_by(mart_newdata.c.dates).all()
+                mart_newdata_.c.dates,
+                mart_newdata_.c.weekday_name,
+                mart_newdata_.c.department,
+                mart_newdata_.c.temp,
+                mart_newdata_.c.tempmin,
+                mart_newdata_.c.tempmax,
+                mart_newdata_.c.feelslike,
+                mart_newdata_.c.feelslikemin,
+                mart_newdata_.c.feelslikemax,
+                mart_newdata_.c.descriptions
+            ).where(mart_newdata_.c.department == department) \
+            .order_by(mart_newdata_.c.dates).all()
 
 
 def get_solarenergy_geo_data_data(db: Session, date: str): # faudra voir la Session(importé de sqlachelmy.orm) venant de sqlalchemy Core
     """Get solarenergy_kwhpm2, solarradiation, reg_name, avg_solarenergy_kwhpm2,
     avg_solarradiation"""
-    return db.query(mart_newdata) \
+    return db.query(mart_newdata_) \
         .with_entities(
-            mart_newdata.c.dates,
-            mart_newdata.c.weekday_name,
-            mart_newdata.c.department,
-            mart_newdata.c.geo_point_2d,
-            mart_newdata.c.geojson,
-            mart_newdata.c.solarenergy_kwhpm2,
-            mart_newdata.c.solarradiation,
-            mart_newdata.c.reg_name,
-            mart_newdata.c.avg_solarenergy_kwhpm2,
-            mart_newdata.c.avg_solarradiation
-        ).where(mart_newdata.c.dates == date).all()
+            mart_newdata_.c.dates,
+            mart_newdata_.c.weekday_name,
+            mart_newdata_.c.department,
+            mart_newdata_.c.geo_point_2d,
+            mart_newdata_.c.geojson,
+            mart_newdata_.c.solarenergy_kwhpm2,
+            mart_newdata_.c.solarradiation,
+            mart_newdata_.c.reg_name,
+            mart_newdata_.c.avg_solarenergy_kwhpm2,
+            mart_newdata_.c.avg_solarradiation
+        ).where(mart_newdata_.c.dates == date).all()
 
 
 def get_date(db: Session):
     """
 	Get Week current date from data recorded in the table
     """
-    rows = db.query(mart_newdata.c.dates).distinct().all()
+    rows = db.query(mart_newdata_.c.dates).distinct().all()
     return [row[0] for row in rows]
 
 
@@ -63,20 +63,20 @@ def get_tfptwgp(db: Session, department: str):
     Get some interesting features like tfptwgp as :
     Temperature, Feels like, Pecipitation, Wind, Gust and Pressure
     """
-    return db.query(mart_newdata) \
+    return db.query(mart_newdata_) \
         .with_entities(
-            mart_newdata.c.dates,
-            mart_newdata.c.department,
-            mart_newdata.c.reg_name,
-            mart_newdata.c.windspeed,
-            mart_newdata.c.windgust,
-            mart_newdata.c.pressure,
-            mart_newdata.c.solarenergy_kwhpm2,
-            mart_newdata.c.temp,
-            mart_newdata.c.feelslike,
-            mart_newdata.c.precip
-        ).where(mart_newdata.c.department == department) \
-        .order_by(mart_newdata.c.dates).all()
+            mart_newdata_.c.dates,
+            mart_newdata_.c.department,
+            mart_newdata_.c.reg_name,
+            mart_newdata_.c.windspeed,
+            mart_newdata_.c.windgust,
+            mart_newdata_.c.pressure,
+            mart_newdata_.c.solarenergy_kwhpm2,
+            mart_newdata_.c.temp,
+            mart_newdata_.c.feelslike,
+            mart_newdata_.c.precip
+        ).where(mart_newdata_.c.department == department) \
+        .order_by(mart_newdata_.c.dates).all()
 
 
 def get_sunshine_data(db: Session):
@@ -84,11 +84,11 @@ def get_sunshine_data(db: Session):
     Get some interesting features like tfptwgp as :
     Temperature, Feels like, Pecipitation, Wind, Gust and Pressure
     """
-    return db.query(mart_newdata.c.dates,
-                    mart_newdata.c.reg_name,
-                    mart_newdata.c.department,
-                    mart_newdata.c.solarenergy_kwhpm2,
-                    mart_newdata.c.solarradiation
+    return db.query(mart_newdata_.c.dates,
+                    mart_newdata_.c.reg_name,
+                    mart_newdata_.c.department,
+                    mart_newdata_.c.solarenergy_kwhpm2,
+                    mart_newdata_.c.solarradiation
                     ).all()
 
 
@@ -96,13 +96,13 @@ def get_region_sunshine_data(db: Session, region:str):
     """
     Get sunshine data for a specific region
     """
-    return db.query(mart_newdata) \
+    return db.query(mart_newdata_) \
         .with_entities(
-            mart_newdata.c.reg_name,
-            mart_newdata.c.department,
-            mart_newdata.c.solarenergy_kwhpm2,
-            mart_newdata.c.solarradiation
-        ).filter(mart_newdata.c.reg_name == region).all()
+            mart_newdata_.c.reg_name,
+            mart_newdata_.c.department,
+            mart_newdata_.c.solarenergy_kwhpm2,
+            mart_newdata_.c.solarradiation
+        ).filter(mart_newdata_.c.reg_name == region).all()
 
 
 def get_solarenergy_agg_pday(db: Session, department:str):
@@ -113,16 +113,16 @@ def get_solarenergy_agg_pday(db: Session, department:str):
     """
     result = (
     db.query(
-        mart_newdata.c.department,
-        func.avg(mart_newdata.c.solarenergy_kwhpm2) \
+        mart_newdata_.c.department,
+        func.avg(mart_newdata_.c.solarenergy_kwhpm2) \
             .label("solarenergy_kwhpm2"),
-        (func.avg(mart_newdata.c.solarenergy_kwhpm2) * 2.7) \
+        (func.avg(mart_newdata_.c.solarenergy_kwhpm2) * 2.7) \
             .label("available_solarenergy_kwhc"),
-        (func.avg(mart_newdata.c.solarenergy_kwhpm2) * 2.7 * 0.217) \
+        (func.avg(mart_newdata_.c.solarenergy_kwhpm2) * 2.7 * 0.217) \
             .label("real_production_kwhpday"),
     )
-    .where(mart_newdata.c.department == department)
-    .group_by(mart_newdata.c.department)
+    .where(mart_newdata_.c.department == department)
+    .group_by(mart_newdata_.c.department)
     .all()
 )
     return result

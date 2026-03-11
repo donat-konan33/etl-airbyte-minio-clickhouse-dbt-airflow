@@ -156,10 +156,6 @@ def _get_temp_data(department: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Entire Department data not found")
     return data
 
-# OPTIMIZED ENDPOINTS FOR DASHBOARDING PURPOSES
-# ➡️ Le frontend n'a plus rien à deviner
-# ➡️ Tu offres un contrat API stable
-# ➡️ Tu peux changer tes vues sans casser le frontend
 
 @app.get("/analytics/stats")
 def _get_stats(
@@ -169,7 +165,6 @@ def _get_stats(
         db: Session = Depends(get_db),
 ):
 
-    # sécurisation des paramètres
     if level not in ("region", "department"):
         raise HTTPException(status_code=400, detail="level must be 'region' or 'department'")
     if period not in ("today", "next3days"):
