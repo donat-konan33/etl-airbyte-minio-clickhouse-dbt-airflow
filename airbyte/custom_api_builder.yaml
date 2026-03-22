@@ -85,7 +85,7 @@ spec:
       locations:
         type: string
         description: >-
-          Enter list of positions : the list must be combined with the ‘|’
+          Enter list of positions : the list must be combined with the '|'
           character. For Instance, London,UK|Paris,France|Tokyo,Japan|Cape Town,
           South Africa
         order: 1
