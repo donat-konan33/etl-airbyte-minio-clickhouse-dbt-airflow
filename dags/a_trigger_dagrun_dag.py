@@ -1,10 +1,16 @@
+import os
+import sys
+import pendulum
+AIRFLOW_HOME = os.environ.get("AIRFLOW_HOME")
+sys.path.append(AIRFLOW_HOME)
+
 from airflow import DAG
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
-import pendulum
 from airflow.operators.empty import EmptyOperator
 
 with DAG(
     dag_id="trigger_new_dags",
+    tags=["trigger and dags synchronizer"],
     start_date=pendulum.datetime(2026, 3, 22, tz="UTC"),
     catchup=False,
     schedule_interval=None,

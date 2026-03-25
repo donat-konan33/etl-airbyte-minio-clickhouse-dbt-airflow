@@ -1,18 +1,15 @@
+import os
+import sys
 
+AIRFLOW_HOME = os.environ.get("AIRFLOW_HOME")
+DBT_DIR = os.environ.get("DBT_DIR")
+
+sys.path.append(AIRFLOW_HOME) # help python retrieving AIRFLOW_HOME
 
 from airflow import DAG
 import pendulum
 from airflow.operators.bash import BashOperator
 from airflow.sensors.external_task import ExternalTaskSensor
-from airflow.operators.python import PythonOperator
-import os
-AIRFLOW_HOME = os.environ.get("AIRFLOW_HOME")
-DBT_DIR = os.environ.get("DBT_DIR")
-
-import sys
-sys.path.append(AIRFLOW_HOME)
-
-from project_functions.python.clickhouse_crud import ClickHouseQueries
 
 with DAG(
     dag_id="dbt_transformation",
@@ -26,7 +23,7 @@ with DAG(
     wait_for_loading_data_to_warehouse_sensor = ExternalTaskSensor(
         task_id="wait_for_loading_data_sensor",
         external_dag_id="python_etl",
-        external_task_id="load",
+        external_task_id="loadings_done",
         mode = 'poke',
         poke_interval=10,
         timeout=1200,
