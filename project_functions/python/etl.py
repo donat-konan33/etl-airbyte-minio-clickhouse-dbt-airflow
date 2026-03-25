@@ -9,9 +9,11 @@ import gc
 import io
 import aiohttp
 import asyncio
+from typing import Literal
+import sys
+
 from python.minio_utils import choose_first, MinioUtils
 from python.clickhouse_crud import ClickHouseQueries
-import sys
 
 
 project_root = Path(__file__).resolve().parent.parent.parent
@@ -26,7 +28,11 @@ def sync_extract(locations: str):
     response = requests.get(url)
 
     if response.status_code != 200:
-        raise ValueError("La requête a échoué")
+        raise ValueError(
+            f"HTTP {response.status_code} error\n"
+            f"URL: {url}\n"
+            f"Response: {response.text}"
+        )
     return response.json()
 
 
@@ -39,7 +45,11 @@ async def async_extract(session, locations, sem):
 
         async with session.get(url) as response:
             if response.status != 200:
-                raise ValueError("La requête a échoué")
+                raise ValueError(
+                    f"HTTP {response.status} error\n"
+                    f"URL: {url}\n"
+                    f"Response: {response.text}"
+                )
             return await response.json()
 
 
@@ -97,7 +107,7 @@ async def async_extract_transform(n_chunks: int=2):
     # get aiohttp session
     async with aiohttp.ClientSession(connector=connector) as session:
             extract_tasks = [async_extract(locations=loc, session=session, sem=sem) for loc in payload_list_sliced]
-            extract_results = await asyncio.gather(*extract_tasks)
+            extract_results = await asyncio.gather(*extract_tasks, return_exceptions=True)
 
     transform_tasks = [async_transform(json_extracted) for json_extracted in extract_results]
     transform_results = await asyncio.gather(*transform_tasks)
@@ -118,15 +128,12 @@ def extract_transform(n_chunks: int=2):
     return asyncio.run(async_extract_transform(n_chunks=n_chunks))
 
 
-def load(data):
-    """Load to Minio then to clickhouse"""
+def loader(data, target: Literal["minio", "clickhouse"]):
+    """Load data to Minio"""
     # récupération du dataframe
 
     try:
-        minio_storage = MinioUtils(bucket_name="weather")
-
         if data is not None and not data.empty:
-
             # check out NA
             if data.isna().any().any():
 
@@ -136,12 +143,15 @@ def load(data):
                 # replace NA
                 data[cols] = data[cols].replace({pd.NA: None})
 
-            # load data to minio
-            minio_storage.storage_df_to_parquet(df=data, prefix=["raw/weatherdata/",])
+            if target == 'minio':
+                # load data to minio
+                minio_storage = MinioUtils(bucket_name="weather")
+                minio_storage.storage_df_to_parquet(df=data, prefix=["raw/weatherdata/",])
 
-            # load data to clickhouse
-            clickhouse_queries = ClickHouseQueries()
-            clickhouse_queries.load_data_to_clickhouse(table_name="raw_weather_", data=data, is_to_truncate=True)
+            if target == "clickhouse":
+                # load data to clickhouse
+                clickhouse_queries = ClickHouseQueries()
+                clickhouse_queries.load_data_to_clickhouse(table_name="raw_weather_", data=data, is_to_truncate=True)
     except Exception as e:
         print(f"Existing an issue : {e}")
 
@@ -158,4 +168,7 @@ if __name__ == "__main__":
     data = extract_transform(n_chunks=n_chunks)     # for tests n_chunks = 2, do not set n_chunks
 
     # step 2: load data to data lake(Minio) data warehouse(Clickhouse)
-    load(data)
+    loader(data, target="minio")
+
+    # step 3: laod data to clickhouse
+    loader(data, target="clickhouse")

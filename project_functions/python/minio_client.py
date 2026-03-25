@@ -15,7 +15,7 @@ def get_minio_client() -> Minio:
     if not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, MINIO_HOST, MINIO_API_PORT]):
         raise ValueError("One or more required environment variables are not set.")
     config = {
-        "minio_endpoint": f"{MINIO_HOST_IP}:{MINIO_API_PORT}", # set MINIO_HOST/MINIO_HOST_IP
+        "minio_endpoint": f"{MINIO_HOST}:{MINIO_API_PORT}", # set MINIO_HOST/MINIO_HOST_IP
         "minio_username": AWS_ACCESS_KEY_ID,
         "minio_password": AWS_SECRET_ACCESS_KEY,
     }

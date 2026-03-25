@@ -80,6 +80,8 @@ services:
           - MINIO_HOST=$MINIO_HOST
           - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
           - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+          - PYTHONPATH=/app/airflow/project_functions
+          - API_KEY=$API_KEY
       volumes:
           - ./dags:/app/airflow/dags
           - ./logs:/app/airflow/logs
@@ -87,6 +89,7 @@ services:
           - ./airbyte:/app/airflow/airbyte
           - ./project_functions:/app/airflow/project_functions
           - ./dbt_project:/app/airflow/dbt_project
+          - ./schemas:/app/airflow/schemas
 
       tty: true
       stdin_open: true
@@ -126,6 +129,9 @@ services:
           - MINIO_HOST=$MINIO_HOST          # for internal docker network
           - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
           - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+          - PYTHONPATH=/app/airflow/project_functions
+          - API_KEY=$API_KEY
+
       volumes:
           - ./dags:/app/airflow/dags
           - ./logs:/app/airflow/logs
@@ -133,6 +139,7 @@ services:
           - ./airbyte:/app/airflow/airbyte
           - ./project_functions:/app/airflow/project_functions
           - ./dbt_project:/app/airflow/dbt_project
+          - ./schemas:/app/airflow/schemas
       ports:
           - "8080:8080"
       healthcheck:

@@ -1,5 +1,4 @@
 # here connection to clickhouse via airflow with clickhouse_hook
-import os
 from python.minio_client import get_minio_client
 import pandas as pd
 import numpy as np

@@ -1,7 +1,7 @@
 import pandas as pd
 from typing import List
 import asyncio
-from project_functions.python.minio_utils import MinioUtils
+from python.minio_utils import MinioUtils
 import re
 from minio.deleteobjects import DeleteObject
 
