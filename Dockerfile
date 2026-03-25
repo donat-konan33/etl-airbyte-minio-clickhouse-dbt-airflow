@@ -22,6 +22,10 @@ COPY scripts scripts
 
 COPY airbyte airbyte
 
+COPY README.md README.md
+
+COPY project_functions project_functions
+
 COPY pyproject.toml poetry.lock ./
 
 RUN chmod +x scripts/entrypoint.sh scripts/init_connections.sh

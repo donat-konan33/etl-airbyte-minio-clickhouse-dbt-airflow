@@ -13,6 +13,10 @@ WORKDIR $APP_HOME
 
 COPY weather_api weather_api
 
+COPY weather_api/README.md README.md
+
+COPY project_functions project_functions
+
 COPY poetry.lock pyproject.toml ./
 
 RUN pip3 install --upgrade --no-cache-dir pip \
@@ -20,6 +24,3 @@ RUN pip3 install --upgrade --no-cache-dir pip \
     && poetry install --without airflow,dev --with api
 
 CMD ["poetry", "run", "uvicorn", "weather_api.main:app", "--host", "0.0.0.0", "--port", "8005"]
-
-# Private API : "--host", "127.0.0.1"
-# Public API : "--host", "0.0.0.0"
