@@ -1,0 +1,381 @@
+{
+"DESCRIBE TABLE raw_weather_": [
+	{
+		"name" : "id",
+		"type" : "String",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "resolvedAddress",
+		"type" : "String",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "address",
+		"type" : "String",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "latitude",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "longitude",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "datetime",
+		"type" : "String",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "datetimeEpoch",
+		"type" : "Int64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "tempmax",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "tempmin",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "temp",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "feelslikemax",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "feelslikemin",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "feelslike",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "dew",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "humidity",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "precip",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "precipprob",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "precipcover",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "preciptype",
+		"type" : "Nullable(String)",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "snow",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "snowdepth",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "windgust",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "windspeed",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "winddir",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "pressure",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "cloudcover",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "visibility",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "solarradiation",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "solarenergy",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "uvindex",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "severerisk",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "sunrise",
+		"type" : "String",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "sunriseEpoch",
+		"type" : "Int64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "sunset",
+		"type" : "String",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "sunsetEpoch",
+		"type" : "Int64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "moonphase",
+		"type" : "Float64",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "conditions",
+		"type" : "String",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "description",
+		"type" : "String",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "icon",
+		"type" : "String",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "stations",
+		"type" : "Nullable(String)",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "source",
+		"type" : "String",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	},
+	{
+		"name" : "department",
+		"type" : "String",
+		"default_type" : "",
+		"default_expression" : "",
+		"comment" : "",
+		"codec_expression" : "",
+		"ttl_expression" : ""
+	}
+]}
