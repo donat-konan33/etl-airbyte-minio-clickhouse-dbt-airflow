@@ -154,6 +154,7 @@ def loader(data, target: Literal["minio", "clickhouse"]):
                 clickhouse_queries.load_data_to_clickhouse(table_name="raw_weather_", data=data, is_to_truncate=True)
     except Exception as e:
         print(f"Existing an issue : {e}")
+        raise
 
 
 if __name__ == "__main__":

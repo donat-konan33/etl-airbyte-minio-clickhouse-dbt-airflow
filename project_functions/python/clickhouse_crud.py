@@ -1,11 +1,9 @@
-import os
-from python.clickhouse_hook import ClickHouseHook
-from python.clickhouse_client import ClickHouseClient
-from typing import Union, Optional
-import pandas as pd
-import logging
 
+import logging
 import textwrap # for formatting SQL queries
+import pandas as pd
+from python.clickhouse_client import ClickHouseClient
+
 
 # Configuration for connecting to ClickHouse
 def get_clickhouse_client() -> ClickHouseClient:

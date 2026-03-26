@@ -2,6 +2,11 @@
 import os
 import clickhouse_connect # for http connection to ClickHouse
 from typing import Dict, Union
+import logging
+
+# logger
+logger = logging.getLogger(__name__)
+
 conn_params = {
     'hostip': os.environ.get("CLICKHOUSE_HOST_IP"),
     'hostname': os.environ.get("CLICKHOUSE_HOST"),
@@ -16,9 +21,9 @@ class ClickHouseClient:
         self.params = conn_params
 
     @classmethod
-    def create_client(cls, conn:Dict[str, Union[str, int]]=conn_params):
+    def create_client(cls, conn:Dict[str, Union[str, int]]=conn_params, host_stuff_name:str="hostname"):
         return clickhouse_connect.get_client(
-            host= conn['hostip'] or conn['hostname'],
+            host=conn[host_stuff_name],
             port=conn['port'],
             username=conn['username'],
             password=conn['password'],
@@ -26,12 +31,46 @@ class ClickHouseClient:
         )
 
     def get_conn(self): # it gives us clickhouse client
-        return clickhouse_connect.get_client(
-            host= self.params['hostip'] or self.params['hostname'],
-            port=self.params['port'],
-            username=self.params['username'],
-            password=self.params['password'],
-            database=self.params['database']
+        hosts = [
+            "hostname",
+            "hostip"
+        ]
+
+        for host_key in hosts:
+
+            host = self.params[host_key]
+
+            try:
+
+                logger.info(
+                    f"Trying ClickHouse connection: {host}"
+                )
+
+                client = clickhouse_connect.get_client(
+                    host=host,
+                    port=self.params['port'],
+                    username=self.params['username'],
+                    password=self.params['password'],
+                    database=self.params['database']
+                )
+
+                # health check
+                client.command("SELECT 1")
+
+                logger.info(
+                    "ClickHouse connection successful"
+                )
+
+                return client
+
+            except Exception:
+
+                logger.warning(
+                    f"Failed to connect to {host}"
+                )
+
+        raise ConnectionError(
+            "Unable to connect to ClickHouse using any host"
         )
 
     def run_query(self, sql):
