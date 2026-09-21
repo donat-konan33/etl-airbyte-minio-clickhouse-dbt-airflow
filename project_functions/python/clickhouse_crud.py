@@ -2,6 +2,7 @@
 import logging
 import textwrap # for formatting SQL queries
 import pandas as pd
+from pathlib import Path
 from python.clickhouse_client import ClickHouseClient
 
 
@@ -29,6 +30,55 @@ class ClickHouseQueries:
     def __init__(self):
         self.clickhouse_client = get_clickhouse_client()
 
+    def ensure_table_exists(self, table_name: str) -> None:
+        """Create the expected schema when a project table is missing in ClickHouse."""
+        client = self.clickhouse_client
+        if not client:
+            raise ValueError("ClickHouse client is not initialized.")
+
+        exists = client.run_query(f"EXISTS TABLE {table_name}").loc[0, "result"]
+        if exists != 0:
+            print(f"Table {table_name} exists in ClickHouse.")
+            return
+
+        schema_sql = {
+            "raw_depcode": textwrap.dedent("""
+                CREATE TABLE IF NOT EXISTS raw_depcode (
+                    geo_point_2d String,
+                    geo_shape String,
+                    reg_name String,
+                    reg_code String,
+                    dep_name_upper String,
+                    dep_current_code String,
+                    dep_status Nullable(String)
+                )
+                ENGINE = MergeTree()
+                ORDER BY dep_current_code
+            """).strip(),
+            "raw_depcode_": textwrap.dedent("""
+                CREATE TABLE IF NOT EXISTS raw_depcode_ (
+                    geo_point_2d String,
+                    geo_shape String,
+                    reg_name String,
+                    reg_code String,
+                    dep_name_upper String,
+                    dep_current_code String,
+                    dep_status Nullable(String),
+                    department String,
+                    dep_normalized String
+                )
+                ENGINE = MergeTree()
+                ORDER BY dep_current_code
+            """).strip(),
+        }.get(table_name)
+
+        if not schema_sql:
+            raise ValueError(f"No schema is defined for ClickHouse table {table_name}.")
+
+        print(f"Table {table_name} does not exist; creating it now...")
+        client.get_conn().command(schema_sql)
+        print(f"Table {table_name} created in ClickHouse.")
+
     def load_data_to_clickhouse(self, table_name: str, data: pd.DataFrame, is_to_truncate: bool=False) -> None:
         """
         Load data into ClickHouse table.
@@ -49,11 +99,7 @@ class ClickHouseQueries:
         except ValueError as ve:
             print(f"Error: {ve}")
 
-        print(f"Checking if table {table_name} exists...")
-        # Check if the table exists
-        if client.run_query(f"EXISTS TABLE {table_name}").loc[0, "result"] == 0: # if value is 0, then table does not exist
-                raise ValueError(f"Table {table_name} does not exist in ClickHouse.")
-        print(f"Table {table_name} exists in ClickHouse.")
+        self.ensure_table_exists(table_name)
 
         # Ensure the ClickHouse client is initialized
         try:
@@ -68,6 +114,50 @@ class ClickHouseQueries:
             print(f"Data loaded into ClickHouse table {table_name} successfully.")
         except Exception as e:
             print(f"Error loading data to ClickHouse: {e}")
+
+    def ensure_reference_tables_ready(self) -> None:
+        """
+        Daily guard: reference tables must exist before dbt starts.
+        This is not a full bootstrap; it is a safe, idempotent precondition check.
+        """
+        client = self.clickhouse_client
+        if not client:
+            raise ValueError("ClickHouse client is not initialized.")
+
+        required_tables = ["raw_depcode", "raw_depcode_"]
+        for table_name in required_tables:
+            self.ensure_table_exists(table_name)
+
+            count = client.get_conn().query_df(query=f"SELECT count() AS cnt FROM {table_name}")
+            rows = int(count.iloc[0].iloc[0])
+            if rows == 0:
+                raise ValueError(
+                    f"Reference table {table_name} is missing data. "
+                    "Run bootstrap_init_reference_tables or reload the reference data before dbt."
+                )
+
+        print("Reference tables are ready for dbt execution.")
+
+    def bootstrap_init_reference_tables(self) -> None:
+        """
+        One-off initialization phase: ensure the reference tables exist and are populated.
+        This is intended for cold starts, resets, or explicit bootstrap runs.
+        """
+        client = self.clickhouse_client
+        if not client:
+            raise ValueError("ClickHouse client is not initialized.")
+
+        required_tables = ["raw_depcode", "raw_depcode_"]
+        for table_name in required_tables:
+            self.ensure_table_exists(table_name)
+
+        for table_name in required_tables:
+            count = client.get_conn().query_df(query=f"SELECT count() AS cnt FROM {table_name}")
+            rows = int(count.iloc[0].iloc[0])
+            if rows == 0:
+                raise ValueError(f"Bootstrap failed: reference table {table_name} is empty.")
+
+        print("Bootstrap reference tables are ready.")
 
     def merge_daily_data(self, table_name: str, target_table_name: str) -> None:
         """
