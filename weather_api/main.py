@@ -79,6 +79,10 @@ def _read_root():
        "redoc": "/redoc"
    }
 
+@app.get("/health")
+def _health_check():
+    return {"status": "ok"}
+
 @app.get("/get_data", tags="raw-data")
 def _get_data(db: Session = Depends(get_db)):
    data = get_data(db)

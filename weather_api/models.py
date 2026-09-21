@@ -2,20 +2,74 @@ import sys, os
 sys.path.append(os.path.dirname(__file__))
 
 from database import engine
-from sqlalchemy import Column, MetaData, literal
+from sqlalchemy import Column, MetaData, literal, inspect
 from clickhouse_sqlalchemy import (
     Table, make_session, engines, types, get_declarative_base
 )
+
 session = make_session(engine)
-metadata = MetaData(bind=engine)
+metadata = MetaData()
 Base = get_declarative_base(metadata=metadata)
 
-archived_data = Table('archived_data', metadata, autoload=True) # we must reflect table from database
 
-mart_today = Table('mart_today', metadata, autoload=True)
-mart_next_3_days = Table('mart_next_3_days', metadata, autoload=True)
-mart_today_stats = Table('mart_today_stats', metadata, autoload=True)
-mart_next_3_days_stats = Table('mart_next_3_days_stats', metadata, autoload=True)
+def _table_or_placeholder(table_name: str, columns=None):
+    try:
+        inspector = inspect(engine)
+        if table_name in inspector.get_table_names():
+            return Table(table_name, metadata, autoload_with=engine)
+    except Exception:
+        pass
+
+    if columns is None:
+        return Table(table_name, metadata)
+    return Table(table_name, metadata, *columns)
+
+
+archived_data_columns = [
+    Column("dates", types.Date),
+    Column("department", types.String),
+    Column("reg_name", types.String),
+    Column("solarenergy_kwhpm2", types.Float64),
+    Column("solarradiation", types.Float64),
+    Column("temp", types.Float64),
+    Column("precip", types.Float64),
+    Column("uvindex", types.Float64),
+]
+
+mart_today_columns = [
+    Column("dates", types.Date),
+    Column("department", types.String),
+    Column("reg_name", types.String),
+    Column("temp", types.Float64),
+    Column("humidity", types.Float64),
+]
+
+mart_next_3_days_columns = [
+    Column("dates", types.Date),
+    Column("department", types.String),
+    Column("reg_name", types.String),
+    Column("temp", types.Float64),
+    Column("humidity", types.Float64),
+]
+
+mart_today_stats_columns = [
+    Column("department", types.String),
+    Column("temp", types.Float64),
+    Column("humidity", types.Float64),
+]
+
+mart_next_3_days_stats_columns = [
+    Column("department", types.String),
+    Column("temp", types.Float64),
+    Column("humidity", types.Float64),
+]
+
+archived_data = _table_or_placeholder('archived_data', archived_data_columns)
+
+mart_today = _table_or_placeholder('mart_today', mart_today_columns)
+mart_next_3_days = _table_or_placeholder('mart_next_3_days', mart_next_3_days_columns)
+mart_today_stats = _table_or_placeholder('mart_today_stats', mart_today_stats_columns)
+mart_next_3_days_stats = _table_or_placeholder('mart_next_3_days_stats', mart_next_3_days_stats_columns)
 
 
 class Users(Base):
@@ -61,8 +115,8 @@ class Locations(Base):
     reg_code = Column(types.String)
     dep_name_upper = Column(types.String)
     dep_current_code = Column(types.String, primary_key=True)
-    dep_status = Column(types.String),
-    department = Column(types.String),
+    dep_status = Column(types.String)
+    department = Column(types.String)
     dep_normalized = Column(types.String)
 
     __table_args__ = (

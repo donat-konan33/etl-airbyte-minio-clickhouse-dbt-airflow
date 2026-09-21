@@ -1,6 +1,6 @@
 import os
 from sqlalchemy import create_engine, text
-DB_URL = os.environ.get("CLICKHOUSE_DATABASE_URL")
+DB_URL = os.environ.get("CLICKHOUSE_DATABASE_URL") or "clickhouse+native://default:change-me@clickhouse-server:9000/default"
 engine = create_engine(DB_URL)
 
 if __name__ == "__main__":
