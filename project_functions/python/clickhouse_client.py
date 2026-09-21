@@ -31,17 +31,18 @@ class ClickHouseClient:
         )
 
     def get_conn(self): # it gives us clickhouse client
-        hosts = [
-            "hostname",
-            "hostip"
-        ]
+        hosts = []
+        for host_key in ("hostname", "hostip"):
+            host = self.params.get(host_key)
+            if host:
+                hosts.append(host)
 
-        for host_key in hosts:
+        for fallback in ("localhost", "127.0.0.1"):
+            if fallback not in hosts:
+                hosts.append(fallback)
 
-            host = self.params[host_key]
-
+        for host in hosts:
             try:
-
                 logger.info(
                     f"Trying ClickHouse connection: {host}"
                 )
@@ -54,17 +55,13 @@ class ClickHouseClient:
                     database=self.params['database']
                 )
 
-                # health check
                 client.command("SELECT 1")
-
                 logger.info(
                     "ClickHouse connection successful"
                 )
-
                 return client
 
             except Exception:
-
                 logger.warning(
                     f"Failed to connect to {host}"
                 )

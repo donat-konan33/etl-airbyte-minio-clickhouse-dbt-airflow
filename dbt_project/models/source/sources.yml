@@ -51,8 +51,12 @@ sources:
               - not_null
           - name: dep_status
             description: the status rural or urbain of the department
+            tests:
+              - accepted_values: ["rural", "urbain"]
           - name : department
             description: Name of department that is the same use to call data via visual crossing api (can help joining table)
+            tests:
+              - not_null
           - name : dep_normalized
             description : Name of department normalized
 
@@ -143,6 +147,12 @@ sources:
             description: "Speed of wind (kph)"
           - name: department
             description: "The name of target department"
+            tests:
+              - not_null
+          - name: datetime
+            description: "Date and time of the measurement in string format currently."
+            tests:
+              - not_null
 
       - name: archived_data
         identifier: archived_data

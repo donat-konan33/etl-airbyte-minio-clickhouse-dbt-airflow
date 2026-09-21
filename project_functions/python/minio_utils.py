@@ -8,11 +8,25 @@ import io
 
 def choose_first(address):
     """
-    choose the first element from string separated by comma
+    Return the first element before a comma for a string while preserving missing values.
+    Supports both scalar values and pandas Series/Index-like inputs.
     """
-    # head,*tail = Iter.split(",") # or head = Iter.split(",")[0] for iterable using
-    # let's vectorize this calculation task
-    return np.vectorize(lambda x: x.split(',')[0])(address)
+
+    def _choose_first_scalar(value):
+        if pd.isna(value):
+            return None
+        if not isinstance(value, str):
+            return value
+        value = value.strip()
+        if "," in value:
+            return value.split(",")[0].strip()
+        return value
+
+    if isinstance(address, pd.Series):
+        return address.map(_choose_first_scalar)
+    if isinstance(address, (list, tuple, np.ndarray, pd.Index)):
+        return pd.Series(address).map(_choose_first_scalar).to_numpy()
+    return _choose_first_scalar(address)
 
 # retrieve data
 class MinioUtils:
