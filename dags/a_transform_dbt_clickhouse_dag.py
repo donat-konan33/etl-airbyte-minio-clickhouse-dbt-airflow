@@ -9,7 +9,10 @@ sys.path.append(AIRFLOW_HOME) # help python retrieving AIRFLOW_HOME
 from airflow import DAG
 import pendulum
 from airflow.operators.bash import BashOperator
+from airflow.operators.python import PythonOperator
 from airflow.sensors.external_task import ExternalTaskSensor
+
+from project_functions.python.clickhouse_crud import ClickHouseQueries
 
 with DAG(
     dag_id="dbt_transformation",
@@ -30,9 +33,14 @@ with DAG(
         allowed_states=["success"]
     )
 
+    ensure_reference_tables_ready = PythonOperator(
+        task_id="ensure_reference_tables_ready",
+        python_callable=ClickHouseQueries().ensure_reference_tables_ready,
+    )
+
     dbt_transformation = BashOperator(
         task_id="dbt_build",
         bash_command=f"dbt build -m +mart_newdata_+ --project-dir {DBT_DIR}"
     )
 
-    wait_for_loading_data_to_warehouse_sensor >> dbt_transformation
+    wait_for_loading_data_to_warehouse_sensor >> ensure_reference_tables_ready >> dbt_transformation

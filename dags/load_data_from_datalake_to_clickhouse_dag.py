@@ -15,8 +15,11 @@ from airflow.utils.trigger_rule import TriggerRule
 from airflow.sensors.external_task import ExternalTaskSensor
 import pendulum
 
-minio_client = get_minio_client()
 object_name = "staging/daily/france_weather_daily_data_extracted.parquet"
+
+
+def retrieve_daily_data(**kwargs):
+    return MinioUtils(bucket_name="weather").retrieve_parquet_data(object_name=object_name)
 
 with DAG(
     dag_id="load_data_from_datalake_to_clickhouse",
@@ -38,8 +41,7 @@ with DAG(
     # retrieve data from MinIO daily directory
     retrieving_data_task = PythonOperator(
         task_id="retrieve_daily_data",
-        python_callable=MinioUtils(bucket_name="weather").retrieve_parquet_data,
-        op_kwargs={"object_name": object_name}
+        python_callable=retrieve_daily_data,
     )
 
     # store data into ClickHouse

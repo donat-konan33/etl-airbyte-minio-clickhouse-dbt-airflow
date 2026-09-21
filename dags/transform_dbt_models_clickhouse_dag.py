@@ -34,6 +34,11 @@ with DAG(
         allowed_states=["success"]
     )
 
+    ensure_reference_tables_ready = PythonOperator(
+        task_id="ensure_reference_tables_ready",
+        python_callable=ClickHouseQueries().ensure_reference_tables_ready,
+    )
+
     dbt_transformation = BashOperator(
         task_id="dbt_build",
         bash_command=f"dbt build -m +mart_newdata --project-dir {DBT_DIR}"
@@ -48,4 +53,4 @@ with DAG(
         }
     )
 
-    wait_for_loading_recent_data_to_warehouse_sensor >> dbt_transformation >> append_martnewdata_to_all_weather
+    wait_for_loading_recent_data_to_warehouse_sensor >> ensure_reference_tables_ready >> dbt_transformation >> append_martnewdata_to_all_weather
