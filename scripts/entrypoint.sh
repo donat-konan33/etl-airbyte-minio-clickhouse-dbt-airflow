@@ -10,15 +10,6 @@ airflow users create -r Admin \
                      -f $AIRFLOW_ADMIN_FIRST_NAME \
                      -l $AIRFLOW_ADMIN_LAST_NAME
 
-# no longer needed : ref : https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/auth-manager/simple/index.html
-
-# adjust value according to your needs | replace the default ./airflow/config/simple_auth_passwords.json
-#cat <<EOF > ./airflow_auth_config/simple_auth_passwords.json
-#{
-#  "${AIRFLOW_ADMIN_USERNAME}": "${AIRFLOW_ADMIN_PASSWORD}"
-#}
-#EOF
-# relevant for airflow 3.x
 
 scripts/init_connections.sh
 

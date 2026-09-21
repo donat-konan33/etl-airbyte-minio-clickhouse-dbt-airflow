@@ -11,6 +11,7 @@ ENV DBT_VERSION=1.8.7
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    curl \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
