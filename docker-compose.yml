@@ -1,156 +1,203 @@
-version: '3'
 services:
   minio:
-    image: quay.io/minio/minio:latest # we have to change to a specific version for production
+    image: quay.io/minio/minio:latest
     container_name: minio
     restart: always
-    ports:
-      - "9001:9000"  # API
-      - "9002:9001"  # Console UI
+    env_file:
+      - .env
     environment:
-      MINIO_ROOT_USER: $MINIO_USER_NAME
-      MINIO_ROOT_PASSWORD: $MINIO_USER_PASSWORD
+      MINIO_ROOT_USER: ${MINIO_USER_NAME}
+      MINIO_ROOT_PASSWORD: ${MINIO_USER_PASSWORD}
     command: server /data --console-address ":9001"
+    ports:
+      - "9001:9000"
+      - "9002:9001"
     volumes:
       - minio-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     networks:
-      - minio-clickhouse-airflow
+      - etl-network
 
   clickhouse-server:
-    image: altinity/clickhouse-server:24.8.14.10501.altinitystable-alpine #clickhouse/clickhouse-server:23.7.4.5-alpine #altinity/clickhouse-server:24.8.14.10501.altinitystable-alpine ## for Prod-ready or clickhouse/clickhouse-server:23.7.4.5-alpine most slightweight; altinity is more stable and i can use many useful features and analytics tools | pull from https://hub.docker.com/r/altinity/clickhouse-server/tags
+    image: altinity/clickhouse-server:24.8.14.10501.altinitystable-alpine
     container_name: clickhousedb
-    restart: always
-    depends_on:
-          - minio
-    ports:
-      - "8123:8123"  # Default HTTP port for ClickHouse (UI), airflow connection
-      - "9000:9000"  # Default TCP port for ClickHouse, used by dbt-clickhouse
-    # Set ClickHouse environment variables from .env file
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      - CLICKHOUSE_DB=$CLICKHOUSE_DB
-      - CLICKHOUSE_USER=$CLICKHOUSE_USER
-      - CLICKHOUSE_PASSWORD=$CLICKHOUSE_PASSWORD
-      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1  # Enable access management for users
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      - "${CLICKHOUSE_NATIVE_PORT:-19000}:9000"
     volumes:
-      - clickhouse-altinity-data:/var/lib/clickhouse
+      - clickhouse-data:/var/lib/clickhouse
+    depends_on:
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --host localhost --user ${CLICKHOUSE_USER} --password ${CLICKHOUSE_PASSWORD} --database ${CLICKHOUSE_DB} --query 'SELECT 1' >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
     networks:
-      - minio-clickhouse-airflow
+      - etl-network
 
   postgres:
     image: postgres:14
+    container_name: airflow-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
-        - POSTGRES_DB=db
-        - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-        - POSTGRES_USER=airflow
-    volumes:
-        - ./database/:/var/lib/postgresql/data
-        - airflow-metadatabase:/var/lib/postgresql/data
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5433:5432" # needed for checking tables from external tools like DBeaver
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-        test: ["CMD", "pg_isready -d db -U airflow"]
-        interval: 5s
-        retries: 5
-    restart: always
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     networks:
-        - minio-clickhouse-airflow
+      - etl-network
 
   scheduler:
-      build: .
-      command: poetry run airflow scheduler
-      restart: on-failure
-      depends_on:
-          - postgres
-      environment:
-          - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-          - AIRFLOW__DEBUG__FAIL_FAST=true
-          - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:$POSTGRES_PASSWORD@postgres:5432/db
-          - AIRFLOW__CORE__LOAD_EXAMPLES=false
-          - AIRFLOW__WEBSERVER__WEB_SERVER_HOSTNAME=$AIRFLOW__WEBSERVER__WEB_SERVER_HOSTNAME
-          - AIRFLOW__WEBSERVER__SECRET_KEY=$AIRFLOW__WEBSERVER__SECRET_KEY
-          - CLICKHOUSE_DB=$CLICKHOUSE_DB
-          - CLICKHOUSE_USER=$CLICKHOUSE_USER
-          - CLICKHOUSE_PASSWORD=$CLICKHOUSE_PASSWORD
-          - CLICKHOUSE_HOST=$CLICKHOUSE_HOST
-          - CLICKHOUSE_HOST_IP=$CLICKHOUSE_HOST_IP
-          - MINIO_USER_NAME=$MINIO_USER_NAME
-          - MINIO_USER_PASSWORD=$MINIO_USER_PASSWORD
-          - MINIO_HOST_IP=$MINIO_HOST_IP
-          - MINIO_API_PORT=$MINIO_API_PORT
-          - MINIO_HOST=$MINIO_HOST
-          - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-          - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-          - PYTHONPATH=/app/airflow/project_functions
-          - API_KEY=$API_KEY
-      volumes:
-          - ./dags:/app/airflow/dags
-          - ./logs:/app/airflow/logs
-          - ./data:/app/airflow/data
-          - ./airbyte:/app/airflow/airbyte
-          - ./project_functions:/app/airflow/project_functions
-          - ./dbt_project:/app/airflow/dbt_project
-          - ./schemas:/app/airflow/schemas
-
-      tty: true
-      stdin_open: true
-      networks:
-          - minio-clickhouse-airflow
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: airflow-scheduler
+    command: ["bash", "-lc", "poetry run airflow db migrate && poetry run airflow scheduler"]
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      AIRFLOW__WEBSERVER__WEB_SERVER_HOSTNAME: ${AIRFLOW__WEBSERVER__WEB_SERVER_HOSTNAME}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
+      AIRFLOW__DEBUG__FAIL_FAST: "true"
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_HOST: ${CLICKHOUSE_HOST}
+      CLICKHOUSE_HOST_IP: ${CLICKHOUSE_HOST_IP}
+      CLICKHOUSE_HTTP_PORT: ${CLICKHOUSE_HTTP_PORT:-8123}
+      CLICKHOUSE_NATIVE_PORT: ${CLICKHOUSE_NATIVE_PORT:-9000}
+      MINIO_USER_NAME: ${MINIO_USER_NAME}
+      MINIO_USER_PASSWORD: ${MINIO_USER_PASSWORD}
+      MINIO_HOST: ${MINIO_HOST}
+      MINIO_HOST_IP: ${MINIO_HOST_IP}
+      MINIO_API_PORT: ${MINIO_API_PORT:-9000}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      PYTHONPATH: /app/airflow/project_functions
+      API_KEY: ${API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse-server:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./dags:/app/airflow/dags
+      - ./logs:/app/airflow/logs
+      - ./data:/app/airflow/data
+      - ./airbyte:/app/airflow/airbyte
+      - ./project_functions:/app/airflow/project_functions
+      - ./dbt_project:/app/airflow/dbt_project
+      - ./schemas:/app/airflow/schemas
+    healthcheck:
+      test: ["CMD-SHELL", "poetry run airflow jobs check --job-type SchedulerJob >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 15s
+      retries: 10
+      start_period: 30s
+    tty: true
+    stdin_open: true
+    networks:
+      - etl-network
 
   webserver:
-      build: .
-      command: poetry run scripts/entrypoint.sh
-      restart: on-failure
-      depends_on:
-          - postgres
-          - scheduler
-      environment:
-          - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-          - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:$POSTGRES_PASSWORD@postgres:5432/db
-          - AIRFLOW__WEBSERVER__WEB_SERVER_HOSTNAME=$AIRFLOW__WEBSERVER__WEB_SERVER_HOSTNAME
-          - AIRFLOW__WEBSERVER__SECRET_KEY=$AIRFLOW__WEBSERVER__SECRET_KEY
-          - POSTGRES_DB=db
-          - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-          - POSTGRES_USER=airflow
-          - AIRFLOW__CORE__LOAD_EXAMPLES=false
-          - AIRFLOW_ADMIN_EMAIL=$AIRFLOW_ADMIN_EMAIL
-          - AIRFLOW_ADMIN_USERNAME=$AIRFLOW_ADMIN_USERNAME
-          - AIRFLOW_ADMIN_PASSWORD=$AIRFLOW_ADMIN_PASSWORD
-          - AIRFLOW_ADMIN_FIRST_NAME=$AIRFLOW_ADMIN_FIRST_NAME
-          - AIRFLOW_ADMIN_LAST_NAME=$AIRFLOW_ADMIN_LAST_NAME
-          - CLICKHOUSE_DB=$CLICKHOUSE_DB
-          - CLICKHOUSE_USER=$CLICKHOUSE_USER
-          - CLICKHOUSE_PASSWORD=$CLICKHOUSE_PASSWORD
-          - CLICKHOUSE_HOST=$CLICKHOUSE_HOST
-          - CLICKHOUSE_HOST_IP=$CLICKHOUSE_HOST_IP
-          - MINIO_USER_NAME=$MINIO_USER_NAME
-          - MINIO_USER_PASSWORD=$MINIO_USER_PASSWORD
-          - MINIO_HOST_IP=$MINIO_HOST_IP    # IP for MinIO in airbyte network
-          - MINIO_API_PORT=$MINIO_API_PORT
-          - MINIO_HOST=$MINIO_HOST          # for internal docker network
-          - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-          - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-          - PYTHONPATH=/app/airflow/project_functions
-          - API_KEY=$API_KEY
-
-      volumes:
-          - ./dags:/app/airflow/dags
-          - ./logs:/app/airflow/logs
-          - ./data:/app/airflow/data
-          - ./airbyte:/app/airflow/airbyte
-          - ./project_functions:/app/airflow/project_functions
-          - ./dbt_project:/app/airflow/dbt_project
-          - ./schemas:/app/airflow/schemas
-      ports:
-          - "8080:8080"
-      healthcheck:
-          test: ["CMD-SHELL", "[ -f /home/airflow/airflow-webserver.pid ]"]
-          interval: 30s
-          timeout: 30s
-          retries: 3
-      tty: true
-      stdin_open: true
-      networks:
-          - minio-clickhouse-airflow
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: airflow-webserver
+    command: poetry run scripts/entrypoint.sh
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      AIRFLOW__WEBSERVER__WEB_SERVER_HOSTNAME: ${AIRFLOW__WEBSERVER__WEB_SERVER_HOSTNAME}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      AIRFLOW_ADMIN_EMAIL: ${AIRFLOW_ADMIN_EMAIL}
+      AIRFLOW_ADMIN_USERNAME: ${AIRFLOW_ADMIN_USERNAME}
+      AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD}
+      AIRFLOW_ADMIN_FIRST_NAME: ${AIRFLOW_ADMIN_FIRST_NAME}
+      AIRFLOW_ADMIN_LAST_NAME: ${AIRFLOW_ADMIN_LAST_NAME}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_HOST: ${CLICKHOUSE_HOST}
+      CLICKHOUSE_HOST_IP: ${CLICKHOUSE_HOST_IP}
+      CLICKHOUSE_HTTP_PORT: ${CLICKHOUSE_HTTP_PORT:-8123}
+      CLICKHOUSE_NATIVE_PORT: ${CLICKHOUSE_NATIVE_PORT:-9000}
+      MINIO_USER_NAME: ${MINIO_USER_NAME}
+      MINIO_USER_PASSWORD: ${MINIO_USER_PASSWORD}
+      MINIO_HOST: ${MINIO_HOST}
+      MINIO_HOST_IP: ${MINIO_HOST_IP}
+      MINIO_API_PORT: ${MINIO_API_PORT:-9000}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      PYTHONPATH: /app/airflow/project_functions
+      API_KEY: ${API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      scheduler:
+        condition: service_healthy
+    volumes:
+      - ./dags:/app/airflow/dags
+      - ./logs:/app/airflow/logs
+      - ./data:/app/airflow/data
+      - ./airbyte:/app/airflow/airbyte
+      - ./project_functions:/app/airflow/project_functions
+      - ./dbt_project:/app/airflow/dbt_project
+      - ./schemas:/app/airflow/schemas
+    ports:
+      - "${AIRFLOW_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health >/dev/null || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+    tty: true
+    stdin_open: true
+    networks:
+      - etl-network
 
   databaseapi:
     build:
@@ -158,36 +205,39 @@ services:
       dockerfile: Dockerfile_fastapi
     container_name: restful_api
     command: ["poetry", "run", "uvicorn", "weather_api.main:app", "--host", "0.0.0.0", "--port", "8005"]
-    restart: always
+    restart: unless-stopped
+    env_file:
+      - .env
     depends_on:
-      - clickhouse-server
+      clickhouse-server:
+        condition: service_healthy
     ports:
-      - "8005:8005"
+      - "${API_PORT:-8005}:8005"
     environment:
-      - CLICKHOUSE_DATABASE_URL=$CLICKHOUSE_DATABASE_URL
+      CLICKHOUSE_DATABASE_URL: ${CLICKHOUSE_DATABASE_URL}
     volumes:
       - ./weather_api:/app/weather_api
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import socket; s=socket.create_connection(('127.0.0.1', 8005), 3); s.close()\" >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 8s
+      retries: 10
+      start_period: 25s
     networks:
-      - minio-clickhouse-airflow
-
+      - etl-network
 
 networks:
-  minio-clickhouse-airflow:
+  etl-network:
+    name: etl-network
     driver: bridge
-    external: true
 
 volumes:
   minio-data:
-    external: true
-  clickhouse-altinity-data:
-    external: true
-  airflow-metadatabase:
-    external: true
+  clickhouse-data:
+  postgres-data:
 
-
-# GOOD TO KNOW
-# The need to explicitly define the hostname appeared with versions ≥ 2.5.0.
-# The SECRET_KEY variable is recommended for security, but Airflow can work without it (it will generate one).
-# environment:
-#   AIRFLOW__WEBSERVER__WEB_SERVER_HOSTNAME=webserver
-#   AIRFLOW__WEBSERVER__SECRET_KEY=super-secret-key-1234567890
+# Notes:
+# - This compose file uses a single Docker bridge network for all application services.
+# - Internal service-to-service access must use the Compose service names (for example: minio, clickhouse-server, postgres).
+# - Host-side access uses the published ports defined in .env or the defaults above.
+# - Named volumes are retained across docker compose down/up unless explicitly removed with --volumes.
