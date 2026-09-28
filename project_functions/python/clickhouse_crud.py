@@ -41,19 +41,73 @@ class ClickHouseQueries:
             print(f"Table {table_name} exists in ClickHouse.")
             return
 
+        # create table if it does not exist with schema below
         schema_sql = {
-            "raw_depcode": textwrap.dedent("""
-                CREATE TABLE IF NOT EXISTS raw_depcode (
-                    geo_point_2d String,
-                    geo_shape String,
-                    reg_name String,
-                    reg_code String,
-                    dep_name_upper String,
-                    dep_current_code String,
-                    dep_status Nullable(String)
+            "raw_weather_": textwrap.dedent("""
+                CREATE TABLE IF NOT EXISTS raw_weather_ (
+                    id String,
+
+                    resolvedAddress String,
+                    address String,
+
+                    latitude Float64,
+                    longitude Float64,
+
+                    datetime String,
+                    datetimeEpoch Int64,
+
+                    tempmax Float64,
+                    tempmin Float64,
+                    temp Float64,
+
+                    feelslikemax Float64,
+                    feelslikemin Float64,
+                    feelslike Float64,
+
+                    dew Float64,
+                    humidity Float64,
+
+                    precip Float64,
+                    precipprob Float64,
+                    precipcover Float64,
+                    preciptype String,
+
+                    snow Float64,
+                    snowdepth Float64,
+
+                    windgust Float64,
+                    windspeed Float64,
+                    winddir Float64,
+
+                    pressure Float64,
+                    cloudcover Float64,
+                    visibility Float64,
+
+                    solarradiation Float64,
+                    solarenergy Float64,
+                    uvindex Float64,
+
+                    severerisk Float64,
+
+                    sunrise String,
+                    sunriseEpoch Int64,
+
+                    sunset String,
+                    sunsetEpoch Int64,
+
+                    moonphase Float64,
+
+                    conditions String,
+                    description String,
+                    icon String,
+
+                    stations Nullable(String),
+                    source String,
+
+                    department String
                 )
-                ENGINE = MergeTree()
-                ORDER BY dep_current_code
+                ENGINE = MergeTree
+                ORDER BY (id, department, datetime)
             """).strip(),
             "raw_depcode_": textwrap.dedent("""
                 CREATE TABLE IF NOT EXISTS raw_depcode_ (
@@ -82,13 +136,12 @@ class ClickHouseQueries:
     def load_data_to_clickhouse(self, table_name: str, data: pd.DataFrame, is_to_truncate: bool=False) -> None:
         """
         Load data into ClickHouse table.
-        raw_weather table has columns 'preciptype', 'stations' contain lists, but ClickHouse does not support list type.
-        Therefore, we convert these columns to string before loading.
-        if raw_weather table is to be created, set check_if_exists to True otherwise False.
 
-        Parameters:
-        -------------
-            data : geojson data should have been handled
+        Args:
+            table_name: str - Name of the ClickHouse table to load data into.
+            data: pd.DataFrame - DataFrame containing the data to be loaded.
+            is_to_truncate: bool - Whether to truncate the table before loading data.
+
         """
         try:
             if data.empty:
@@ -104,7 +157,7 @@ class ClickHouseQueries:
         # Ensure the ClickHouse client is initialized
         try:
             print(f"Loading data into ClickHouse table {table_name}...")
-            # be ensure geojson data were transform before
+            # be ensure geojson data were transformed before
             if is_to_truncate:
                 client.get_conn().command(f"TRUNCATE TABLE {table_name}")  # Truncate the table if required
                 client.get_conn().insert_df(table=table_name, df=data)
@@ -124,7 +177,7 @@ class ClickHouseQueries:
         if not client:
             raise ValueError("ClickHouse client is not initialized.")
 
-        required_tables = ["raw_depcode", "raw_depcode_"]
+        required_tables = ["raw_weather_", "raw_depcode_"]
         for table_name in required_tables:
             self.ensure_table_exists(table_name)
 
@@ -147,9 +200,16 @@ class ClickHouseQueries:
         if not client:
             raise ValueError("ClickHouse client is not initialized.")
 
-        required_tables = ["raw_depcode", "raw_depcode_"]
+        required_tables = ["raw_weather_", "raw_depcode_"]
         for table_name in required_tables:
             self.ensure_table_exists(table_name)
+
+        # Load department reference data if raw_depcode_ is empty
+        count = client.get_conn().query_df(query=f"SELECT count() AS cnt FROM raw_depcode_")
+        rows = int(count.iloc[0].iloc[0])
+        if rows == 0:
+            print("raw_depcode_ is empty, loading reference department data...")
+            self._load_department_reference_data()
 
         for table_name in required_tables:
             count = client.get_conn().query_df(query=f"SELECT count() AS cnt FROM {table_name}")
@@ -158,6 +218,73 @@ class ClickHouseQueries:
                 raise ValueError(f"Bootstrap failed: reference table {table_name} is empty.")
 
         print("Bootstrap reference tables are ready.")
+
+    def _load_department_reference_data(self) -> None:
+        """
+        Load fixed French department reference data (raw_depcode_).
+        Merges department codes with geographic data (regions, coordinates, shapes).
+        This is a one-time bootstrap operation for initialization.
+        """
+        import shapely.wkb
+        from shapely import wkt
+        import json
+        from pathlib import Path
+        from python.functions import TransformData
+
+        project_root = Path(__file__).resolve().parent.parent.parent
+
+        department_path = project_root / "data/location/departements_france_selection.csv"
+        dep_geo_path = project_root / "data/location/france_region_department96.parquet"
+
+        if not department_path.exists():
+            raise FileNotFoundError(f"Department data file not found: {department_path}")
+        if not dep_geo_path.exists():
+            raise FileNotFoundError(f"Geographic data file not found: {dep_geo_path}")
+
+        # Load department codes and geographic data
+        department_data = pd.read_csv(department_path)
+        dep_geo = pd.read_parquet(dep_geo_path)
+
+        # Normalize department names for proper merging
+        normalizer = TransformData()
+        department_data["dep_normalized"] = normalizer.normalize(department_data["department"])
+
+        # Merge on department code
+        data = dep_geo.merge(department_data, on="dep_current_code", how="left")
+
+        # Convert WKB to WKT format and handle GeoJSON conversion
+        def wkb_to_wkt(x):
+            try:
+                return shapely.wkb.loads(x).wkt
+            except Exception:
+                return None
+
+        if "geo_point_2d" in data.columns:
+            data["geo_point_2d"] = data["geo_point_2d"].apply(wkb_to_wkt)
+        if "geo_shape" in data.columns:
+            data["geo_shape"] = data["geo_shape"].apply(wkb_to_wkt)
+            data["geo_shape"] = data["geo_shape"].apply(
+                lambda w: wkt.loads(w).__geo_interface__ if w else None
+            )
+            data["geo_shape"] = data["geo_shape"].apply(
+                lambda x: json.dumps(x) if isinstance(x, dict) else x
+            )
+
+        # Ensure all string columns are properly typed
+        for col in ["reg_name", "reg_code", "dep_name_upper", "dep_current_code", "dep_status"]:
+            if col in data.columns:
+                data[col] = data[col].apply(lambda x: str(x) if not pd.isna(x) else x)
+
+        for col in data.select_dtypes(include=["object"]).columns:
+            data[col] = data[col].astype("string")
+
+        # Load into ClickHouse
+        print(f"Loading {len(data)} department reference records into raw_depcode_...")
+        self.load_data_to_clickhouse(
+            table_name="raw_depcode_",
+            data=data,
+            is_to_truncate=True
+        )
 
     def merge_daily_data(self, table_name: str, target_table_name: str) -> None:
         """

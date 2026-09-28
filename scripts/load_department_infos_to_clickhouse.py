@@ -58,7 +58,7 @@ def main():
     df_clickhouse_loader.load_data_to_clickhouse(
         table_name="raw_depcode_",
         data=data,
-        is_to_truncate=False
+        is_to_truncate=True
 )
 
 if __name__ == "__main__":
