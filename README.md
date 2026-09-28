@@ -185,6 +185,67 @@ Vérifiez :
 - la secret key est bien définie,
 - PostgreSQL est sain avant le démarrage du scheduler.
 
+
+## Exposition publique et sécurisation de l'API
+
+### Sécurisation de l'API
+
+L'API FastAPI intègre une authentification par clé API afin de sécuriser son exposition publique.
+
+Le mécanisme repose sur `APIKeyHeader` de FastAPI : une clé API doit être fournie dans l'en-tête HTTP de chaque requête avant que l'accès aux endpoints protégés soit autorisé.
+
+La clé API est stockée dans les variables d'environnement et ne doit jamais être commitée dans le dépôt.
+
+> **Important :** `APIKeyHeader` assure l'authentification par clé API. Le chiffrement des échanges est, quant à lui, assuré par HTTPS/TLS lors de l'exposition publique.
+
+### Exposition publique avec Tailscale
+
+Une fois la stack ETL déployée et l'API FastAPI opérationnelle, celle-ci peut être exposée sur Internet à l'aide de Tailscale.
+
+Cette solution permet notamment de rendre l'API accessible depuis un service externe tel que **Streamlit Cloud**, tout en conservant l'infrastructure de données sur la machine distante.
+
+#### 1. Installation et configuration de Tailscale
+
+Après le déploiement de la stack ETL, rendre le script d'installation exécutable :
+
+```bash
+chmod +x scripts/tailscale.sh
+```
+
+Puis lancer le script :
+
+```bash
+./scripts/tailscale.sh
+```
+
+Suivez les instructions affichées afin d'installer et de configurer le client Tailscale.
+
+Le script permet de mettre en place la connexion Tailscale et la configuration nécessaire à l'exposition de l'API.
+
+#### 2. Accès à l'API depuis Internet
+
+Une fois le tunnel configuré, l'API FastAPI devient accessible depuis Internet et peut notamment être appelée depuis le frontend Streamlit Cloud.
+
+Le flux devient alors :
+
+```text
+Streamlit Cloud
+       │
+       │ HTTPS + API Key
+       ▼
+Tailscale
+       │
+       ▼
+FastAPI
+       │
+       ▼
+ClickHouse
+```
+
+> **Rappel de sécurité :** sécurisez l'API avec une clé API avant de l'exposer publiquement. Ne rendez jamais une API contenant des données ou des fonctionnalités sensibles accessible publiquement sans mécanisme d'authentification approprié.
+
+Tailscale propose une offre gratuite adaptée à ce type d'usage personnel ou de démonstration. Les modalités et limitations des fonctionnalités d'exposition publique peuvent toutefois évoluer ; consultez la documentation Tailscale pour les conditions actuelles.
+
 ## Gros point de ce projet
 
 Cette stack est conçue pour être claire, portable et réaliste. Elle illustre un workflow de Data Engineering de bout en bout : collecte, stockage, transformation et exposition des données via une API.
