@@ -47,7 +47,7 @@ with DAG(
     dag_id="python_etl",
     tags=["etl from api to clickhouse and minio with python"],
     schedule_interval="0 2 * * *",
-    start_date=pendulum.datetime(2026, 3, 22, tz="UTC"),
+    start_date=pendulum.datetime(2026, 9, 27, tz="UTC"),
     catchup=False
 ) as dag:
 

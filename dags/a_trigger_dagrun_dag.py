@@ -11,12 +11,18 @@ from airflow.operators.empty import EmptyOperator
 with DAG(
     dag_id="trigger_new_dags",
     tags=["trigger and dags synchronizer"],
-    start_date=pendulum.datetime(2026, 3, 22, tz="UTC"),
+    start_date=pendulum.datetime(2026, 9, 27, tz="UTC"),
     catchup=False,
     schedule_interval=None,
 ) as dag:
 
     start_task = EmptyOperator(task_id="start_orchestration_project")
+
+    trigger_init = TriggerDagRunOperator(
+        task_id="trigger_bootstrap_init_reference_tables",
+        trigger_dag_id="bootstrap_init_reference_tables",
+        logical_date="{{ ts }}",
+    )
 
     trigger_A = TriggerDagRunOperator(
         task_id="trigger_python_etl",
@@ -30,4 +36,4 @@ with DAG(
         logical_date="{{ ts }}",
     )
 
-    start_task >> [trigger_A, trigger_B]
+    start_task >> trigger_init >> [trigger_A, trigger_B]

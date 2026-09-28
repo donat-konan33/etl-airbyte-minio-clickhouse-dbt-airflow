@@ -18,7 +18,7 @@ with DAG(
     dag_id="dbt_transformation",
     tags=["dbt actions in ClickHouse"],
     default_args={'owner': 'dbt'},
-    start_date=pendulum.datetime(2026, 3, 22, tz="UTC"),
+    start_date=pendulum.datetime(2026, 9, 27, tz="UTC"),
     schedule_interval="0 2 * * *",
     catchup=False,
 ) as dag:
@@ -40,7 +40,7 @@ with DAG(
 
     dbt_transformation = BashOperator(
         task_id="dbt_build",
-        bash_command=f"dbt build -m +mart_newdata_+ --project-dir {DBT_DIR}"
+        bash_command=f"dbt build --resource-type model --select +mart_newdata_+ --project-dir {DBT_DIR}"
     )
 
     wait_for_loading_data_to_warehouse_sensor >> ensure_reference_tables_ready >> dbt_transformation
