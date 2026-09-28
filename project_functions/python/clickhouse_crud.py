@@ -70,7 +70,7 @@ class ClickHouseQueries:
                     precip Float64,
                     precipprob Float64,
                     precipcover Float64,
-                    preciptype String,
+                    preciptype Nullable(String),
 
                     snow Float64,
                     snowdepth Float64,

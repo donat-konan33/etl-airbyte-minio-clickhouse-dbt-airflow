@@ -8,7 +8,9 @@ from database import engine
 from crud import *
 from schemas import *
 from typing import List
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Security
+from fastapi.security.api_key import APIKeyHeader
+
 import uvicorn
 
 tags = [
@@ -60,6 +62,23 @@ tags = [
 
 app = FastAPI(title="Weather Database", openapi_tags=tags)
 
+# api security
+api_key_header = APIKeyHeader(name="X-API-Key")
+
+API_KEY = os.environ.get("FAST_API_KEY")
+
+def verify_api_key(api_key: str = Security(api_key_header)):
+    if not API_KEY:
+        raise RuntimeError("API is not configured with an API key. Please set the FAST_API_KEY environment variable.")
+    if api_key != API_KEY:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API key"
+        )
+    return api_key
+
+dependencies=[Depends(verify_api_key)]
+
 def get_db():
    """Helper function which opens a connection to the database and also manages closing the connection"""
    db = make_session(engine)
@@ -79,81 +98,82 @@ def _read_root():
        "redoc": "/redoc"
    }
 
+
 @app.get("/health")
 def _health_check():
     return {"status": "ok"}
 
-@app.get("/get_data", tags="raw-data")
+@app.get("/get_data", tags="raw-data", dependencies=dependencies)
 def _get_data(db: Session = Depends(get_db)):
    data = get_data(db)
    if not data:
        raise HTTPException(status_code=404, detail="All Data not found")
    return data
 
-@app.get("/date", tags="metadata")
+@app.get("/date", tags="metadata", dependencies=dependencies)
 def _get_date(db: Session = Depends(get_db)):
    dates = get_date(db)
    if not dates:
        raise HTTPException(status_code=404, detail="Dates not found")
    return dates
 
-@app.get("/get_sunshine_data", tags="sunshine")
+@app.get("/get_sunshine_data", tags="sunshine", dependencies=dependencies)
 def _get_sunshine_data(db: Session = Depends(get_db)):
     data = get_sunshine_data(db)
     if not data:
         raise HTTPException(status_code=404, detail="Sunshine data not found")
     return data
 
-@app.get("/solar_geo_data", tags="solar-geo")
+@app.get("/solar_geo_data", tags="solar-geo", dependencies=dependencies)
 def _get_solarenergy_geo_data(date: str, db: Session = Depends(get_db)):
     data = get_solarenergy_geo_data_data(db=db, date=date)
     if not data:
         raise HTTPException(status_code=404, detail="Solar Geo Data not found")
     return data
 
-@app.get("/common_features", tags="features")
+@app.get("/common_features", tags="features", dependencies=dependencies)
 def _get_tfptwgp(department: str, db: Session = Depends(get_db)):
     data = get_tfptwgp(db=db, department=department)
     if not data:
         raise HTTPException(status_code=404, detail="Common features Data not found")
     return data
 
-@app.get("/get_region_sunshine_data", tags="sunshine")
+@app.get("/get_region_sunshine_data", tags="sunshine", dependencies=dependencies)
 def _get_region_sunshine_data(region: str, db: Session = Depends(get_db)):
     data = get_region_sunshine_data(db=db, region=region)
     if not data:
         raise HTTPException(status_code=404, detail="Region Sunshine data Data not found")
     return data
 
-@app.get("/get_solarenergy_agg_pday", tags="solar-energy")
+@app.get("/get_solarenergy_agg_pday", tags="solar-energy", dependencies=dependencies)
 def _get_solarenergy_agg_pday(department: str, db: Session = Depends(get_db)):
     data = get_solarenergy_agg_pday(db=db, department=department)
     if not data:
         raise HTTPException(status_code=404, detail="Daily Solar Aggregating data not found")
     return data
 
-@app.get("/get_entire_region_data", tags="regional-data")
+@app.get("/get_entire_region_data", tags="regional-data", dependencies=dependencies)
 def _get_entire_region_data(region: str, db: Session = Depends(get_db)):
     data = get_entire_region_data(db=db, region=region)
     if not data:
         raise HTTPException(status_code=404, detail="Entire Region data not found")
     return data
 
-@app.get("/get_entire_department_data", tags="departmental-data")
+@app.get("/get_entire_department_data", tags="departmental-data", dependencies=dependencies)
 def _get_entire_department_data(department: str, db: Session = Depends(get_db)):
     data = get_entire_department_data(db=db, department=department)
     if not data:
         raise HTTPException(status_code=404, detail="Entire Department data not found")
     return data
 
-@app.get("/get_ml_data", tags="ml-data")
+@app.get("/get_ml_data", tags="ml-data", dependencies=dependencies)
 def _get_entire_data(db: Session = Depends(get_db)):
     data = get_ml_data(db=db)
     if not data:
         raise HTTPException(status_code=404, detail="Entire data so far not found")
     return data
 
-@app.get("/get_temp_data", tags="temperature")
+@app.get("/get_temp_data", tags="temperature", dependencies=dependencies)
 def _get_temp_data(department: str, db: Session = Depends(get_db)):
     data = get_temp_data(db=db, department=department)
     if not data:
@@ -161,7 +181,7 @@ def _get_temp_data(department: str, db: Session = Depends(get_db)):
     return data
 
 
-@app.get("/analytics/stats")
+@app.get("/analytics/stats", tags="analytics", dependencies=dependencies)
 def _get_stats(
         level: str = Query("department", description="region or department"),
         period: str = Query("today", description="today or next3days"),
