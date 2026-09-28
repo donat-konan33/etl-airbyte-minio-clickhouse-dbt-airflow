@@ -1,16 +1,21 @@
 {{
-  config(
-    materialized='table',
-    engine='ReplacingMergeTree',
-    post_hook="
-      CREATE TABLE IF NOT EXISTS {{ this }}
-      ENGINE = ReplacingMergeTree(version)
-      PARTITION BY toYYYYMM(dates)
-      ORDER BY (dates, department)
-    "
-  )
+    config(
+        materialized='incremental',
+        engine='MergeTree',
+        partition_by='toYYYYMM(dates)',
+        order_by='(dates, department, record_id)',
+        on_schema_change='sync_all_columns'
+    )
 }}
 
-SELECT * FROM {{ source('clickhouse', 'archived_data') }}
-UNION ALL
-SELECT * FROM {{ ref('mart_newdata') }}
+SELECT *
+FROM {{ ref('mart_newdata_') }}
+
+{% if is_incremental() %}
+
+WHERE record_id NOT IN (
+    SELECT record_id
+    FROM {{ this }}
+)
+
+{% endif %}

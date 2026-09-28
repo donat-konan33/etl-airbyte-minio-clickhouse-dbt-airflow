@@ -2,7 +2,7 @@
   config(
     materialized='table',
     engine='MergeTree',
-    order_by='(dates, department)'
+    order_by='(dates, department)',
   )
 }}
 

@@ -8,27 +8,6 @@ sources:
     schema: datawarehouse
     description: "Raw data from the location and weather tables"
     tables:
-      - name: raw_depcode
-        identifier: raw_depcode
-        description: department with their, an unique code per department
-        columns:
-          - name: geo_point_2d
-            description: Geographical Point, currently in bytes
-          - name: geo_shape
-            description: Geographical Shape, currently in bytes
-          - name: reg_name
-            description: name of region of the department
-          - name: reg_code
-            description: code of region
-          - name: dep_name_upper
-            description: department name set to upper
-          - name: dep_current_code
-            description: code of department
-            tests:
-              - unique
-              - not_null
-          - name: dep_status
-            description: the status rural or urbain of the department
 
       - name: raw_depcode_
         identifier: raw_depcode_
@@ -51,8 +30,11 @@ sources:
               - not_null
           - name: dep_status
             description: the status rural or urbain of the department
-            tests:
-              - accepted_values: ["rural", "urbain"]
+            data_tests:
+              - accepted_values:
+                  values:
+                    - rural
+                    - urbain
           - name : department
             description: Name of department that is the same use to call data via visual crossing api (can help joining table)
             tests:
@@ -61,208 +43,10 @@ sources:
             description : Name of department normalized
 
 
-      - name: latest_weather
-        identifier: raw_weather
-        description: table gathering all the most weather metrics recorded
-        columns:
-          - name: _airbyte_ab_id
-            description: "airbyte record id representing a slot of departments recorded (0198e6ee-13ae-7d92-8691-288930209531)"
-          - name: latitude
-            description: "For location"
-          - name: longitude
-            description: "For location"
-          - name: resolvedAddress
-            description: "the department name comes with region mentioned"
-          - name: cloudcover
-            description: "Percentage of cloud cover (%)."
-          - name: conditions
-            description: "General weather conditions (e.g., sunny, cloudy, rainy)."
-          - name: datetime
-            description: "Date and time of the measurement in string format currently."
-          - name: datetimeEpoch
-            description: "Number of seconds from 1970-01-01 to the target date"
-          - name: description
-            description: "Detailed description of weather conditions."
-          - name: dew
-            description: "Dew point in °C (temperature at which air becomes saturated with humidity)."
-          - name: feelslike
-            description: "Average perceived temperature for the day (in °C)."
-          - name: feelslikemax
-            description: "Maximum perceived temperature for the day (in °C)."
-          - name: feelslikemin
-            description: "Minimum perceived temperature for the day (in °C)."
-          - name: humidity
-            description: "Relative humidity of the air in percentage (%)."
-          - name: icon
-            description: "Icon representing weather conditions."
-          - name: moonphase
-            description: "Moon phase (%)."
-          - name: precip
-            description: "Total amount of precipitation recorded (in mm)."
-          - name: precipcover
-            description: "Percentage of the time period covered by precipitation (%)."
-          - name: precipprob
-            description: "Probability of precipitation in percentage (%)."
-          - name: preciptype
-            description: "Type of recorded precipitation (e.g., rain, snow, hail)."
-          - name: pressure
-            description: The atmospheric pressure at a location that removes reduction in pressure due to the altitude of the location. This is expressed in millibars (mb).
-          - name: severerisk
-            description: "Severe risk is value between 0 and 100 representing the risk of convective storms (e.g. thunderstorms, hail and tornadoes). "
-          - name: snow
-            description: "Thickness of the snow in cm"
-          - name: snowdepth
-            description: "Snow depth is the average amount of snow currently on the ground for the time period (cm)"
-          - name: solarenergy
-            description: "Indicates the total energy from the sun that builds up over an hour or day"
-          - name: solarradiation
-            description: "Measures the power (in W/m2) at the instantaneous moment of the observation"
-          - name: source
-            description: "source"
-          - name: stations
-            description: "stations where measurements were recorded"
-          - name: sunrise
-            description: "Sunrise time"
-          - name: sunriseEpoch
-            description: "Unix date"
-          - name: sunset
-            description: "Sunset time"
-          - name: sunsetEpoch
-            description: "Unix date"
-          - name: temp
-            description: "Mean temperature in °C"
-          - name: tempmax
-            description: "Maximal temperature  in °C"
-          - name: tempmin
-            description: "Minimal temperature  in °C"
-          - name: uvindex
-            description: "A value between 0 and 10 indicating the level of ultra violet (UV) exposure for that hour or day"
-          - name: visibility
-            description:  "Visibility is the distance that can be seen in daylight (in km)"
-          - name: winddir
-            description: "indicates the direction from where the wind is blowing from. The units of the wind direction is degrees from north. The value ranges from 0 degrees (from the North), to 90 degrees (from the east), 180 degrees (from the south), 270 (from the west) back to 360 degrees"
-          - name: windgust
-            description: "Wind gust is the maximum wind speed (kph) measures over a short amount of time (typically less than 20 seconds)"
-          - name: windspeed
-            description: "Speed of wind (kph)"
-          - name: department
-            description: "The name of target department"
-            tests:
-              - not_null
-          - name: datetime
-            description: "Date and time of the measurement in string format currently."
-            tests:
-              - not_null
-
-      - name: archived_data
-        identifier: archived_data
-        description: Table containing archived weather and department data
-        columns:
-          - name: record_id
-            description: Nullable string identifier for the record
-          - name: dates
-            description: Date of the record
-          - name: datetimeEpoch
-            description: Number of seconds from 1970-01-01 to the target date (nullable)
-          - name: weekday_name
-            description: Name of the weekday
-          - name: department
-            description: Department name (nullable)
-          - name: dep_name
-            description: Department name
-          - name: dep_code
-            description: Department code
-          - name: dep_status
-            description: Status of the department (rural or urbain)
-          - name: reg_name
-            description: Region name
-          - name: reg_code
-            description: Region code
-          - name: geo_point_2d
-            description: Geographical Point (string)
-          - name: geojson
-            description: Geographical shape in GeoJSON format
-          - name: locations
-            description: Locations (nullable string)
-          - name: latitude
-            description: Latitude (nullable float)
-          - name: longitude
-            description: Longitude (nullable float)
-          - name: solarenergy_kwhpm2
-            description: Solar energy in kWh/m2 (nullable float)
-          - name: solarradiation
-            description: Solar radiation (nullable float)
-          - name: uvindex
-            description: UV index (nullable float)
-          - name: temp
-            description: Mean temperature (nullable float)
-          - name: tempmax
-            description: Maximal temperature (nullable float)
-          - name: tempmin
-            description: Minimal temperature (nullable float)
-          - name: feelslike
-            description: Average perceived temperature (nullable float)
-          - name: feelslikemax
-            description: Maximum perceived temperature (nullable float)
-          - name: feelslikemin
-            description: Minimum perceived temperature (nullable float)
-          - name: precip
-            description: Total precipitation (nullable float)
-          - name: precipprob
-            description: Probability of precipitation (nullable float)
-          - name: precipcover
-            description: Percentage of time period covered by precipitation (nullable float)
-          - name: snow
-            description: Thickness of snow (nullable float)
-          - name: snowdepth_filled
-            description: Filled snow depth (nullable float)
-          - name: dew
-            description: Dew point (nullable float)
-          - name: humidity
-            description: Relative humidity (nullable float)
-          - name: winddir
-            description: Wind direction (nullable float)
-          - name: windspeed
-            description: Wind speed (nullable float)
-          - name: windgust
-            description: Wind gust (nullable float)
-          - name: pressure
-            description: Atmospheric pressure (nullable float)
-          - name: severerisk
-            description: Severe risk value (nullable float)
-          - name: icon
-            description: Weather icon (nullable string)
-          - name: cloudcover
-            description: Percentage of cloud cover (nullable float)
-          - name: conditions
-            description: General weather conditions (nullable string)
-          - name: moonphase
-            description: Moon phase (nullable float)
-          - name: moonphase_label
-            description: Moon phase label
-          - name: descriptions
-            description: Detailed weather descriptions (nullable string)
-          - name: sunrise
-            description: Sunrise time (nullable string)
-          - name: sunset
-            description: Sunset time (nullable string)
-          - name: source
-            description: Source of the data (nullable string)
-          - name: sunriseEpoch
-            description: Sunrise time in Unix epoch (nullable float)
-          - name: sunsetEpoch
-            description: Sunset time in Unix epoch (nullable float)
-          - name: dep_distance
-            description: Department distance (nullable UInt64)
-          - name: avg_solarenergy_kwhpm2
-            description: Average solar energy in kWh/m2 (nullable float)
-          - name: avg_solarradiation
-            description: Average solar radiation (nullable float)
-
-
       - name: latest_weather_
         identifier: raw_weather_
         description: >
+          Table getting with Python data extraction solution (Python Solution)
           Table containing the latest available weather observations and daily aggregates
           for French departments, including temperature, precipitation, wind, solar radiation
           and atmospheric metrics.
@@ -416,3 +200,97 @@ sources:
 
           - name: department
             description: Name of the French department associated with the weather data.
+
+
+      - name: latest_weather
+        identifier: raw_weather
+        description: table gathering all the most weather metrics recorded (AIRBYTE solution)
+        columns:
+          - name: _airbyte_ab_id
+            description: "airbyte record id representing a slot of departments recorded (0198e6ee-13ae-7d92-8691-288930209531)"
+          - name: latitude
+            description: "For location"
+          - name: longitude
+            description: "For location"
+          - name: resolvedAddress
+            description: "the department name comes with region mentioned"
+          - name: cloudcover
+            description: "Percentage of cloud cover (%)."
+          - name: conditions
+            description: "General weather conditions (e.g., sunny, cloudy, rainy)."
+          - name: datetime
+            description: "Date and time of the measurement in string format currently."
+          - name: datetimeEpoch
+            description: "Number of seconds from 1970-01-01 to the target date"
+          - name: description
+            description: "Detailed description of weather conditions."
+          - name: dew
+            description: "Dew point in °C (temperature at which air becomes saturated with humidity)."
+          - name: feelslike
+            description: "Average perceived temperature for the day (in °C)."
+          - name: feelslikemax
+            description: "Maximum perceived temperature for the day (in °C)."
+          - name: feelslikemin
+            description: "Minimum perceived temperature for the day (in °C)."
+          - name: humidity
+            description: "Relative humidity of the air in percentage (%)."
+          - name: icon
+            description: "Icon representing weather conditions."
+          - name: moonphase
+            description: "Moon phase (%)."
+          - name: precip
+            description: "Total amount of precipitation recorded (in mm)."
+          - name: precipcover
+            description: "Percentage of the time period covered by precipitation (%)."
+          - name: precipprob
+            description: "Probability of precipitation in percentage (%)."
+          - name: preciptype
+            description: "Type of recorded precipitation (e.g., rain, snow, hail)."
+          - name: pressure
+            description: The atmospheric pressure at a location that removes reduction in pressure due to the altitude of the location. This is expressed in millibars (mb).
+          - name: severerisk
+            description: "Severe risk is value between 0 and 100 representing the risk of convective storms (e.g. thunderstorms, hail and tornadoes). "
+          - name: snow
+            description: "Thickness of the snow in cm"
+          - name: snowdepth
+            description: "Snow depth is the average amount of snow currently on the ground for the time period (cm)"
+          - name: solarenergy
+            description: "Indicates the total energy from the sun that builds up over an hour or day"
+          - name: solarradiation
+            description: "Measures the power (in W/m2) at the instantaneous moment of the observation"
+          - name: source
+            description: "source"
+          - name: stations
+            description: "stations where measurements were recorded"
+          - name: sunrise
+            description: "Sunrise time"
+          - name: sunriseEpoch
+            description: "Unix date"
+          - name: sunset
+            description: "Sunset time"
+          - name: sunsetEpoch
+            description: "Unix date"
+          - name: temp
+            description: "Mean temperature in °C"
+          - name: tempmax
+            description: "Maximal temperature  in °C"
+          - name: tempmin
+            description: "Minimal temperature  in °C"
+          - name: uvindex
+            description: "A value between 0 and 10 indicating the level of ultra violet (UV) exposure for that hour or day"
+          - name: visibility
+            description:  "Visibility is the distance that can be seen in daylight (in km)"
+          - name: winddir
+            description: "indicates the direction from where the wind is blowing from. The units of the wind direction is degrees from north. The value ranges from 0 degrees (from the North), to 90 degrees (from the east), 180 degrees (from the south), 270 (from the west) back to 360 degrees"
+          - name: windgust
+            description: "Wind gust is the maximum wind speed (kph) measures over a short amount of time (typically less than 20 seconds)"
+          - name: windspeed
+            description: "Speed of wind (kph)"
+          - name: department
+            description: "The name of target department"
+            tests:
+              - not_null
+          - name: datetime
+            description: "Date and time of the measurement in string format currently."
+            tests:
+              - not_null
