@@ -42,6 +42,11 @@ mart_today_columns = [
     Column("reg_name", types.String),
     Column("temp", types.Float64),
     Column("humidity", types.Float64),
+    Column("windspeed", types.Float64),
+    Column("pressure", types.Float64),
+    Column("cloudcover", types.Float64),
+    Column("solarradiation", types.Float64),
+    Column("solarenergy_kwhpm2", types.Float64),
 ]
 
 mart_next_3_days_columns = [
@@ -50,6 +55,11 @@ mart_next_3_days_columns = [
     Column("reg_name", types.String),
     Column("temp", types.Float64),
     Column("humidity", types.Float64),
+    Column("windspeed", types.Float64),
+    Column("pressure", types.Float64),
+    Column("cloudcover", types.Float64),
+    Column("solarradiation", types.Float64),
+    Column("solarenergy_kwhpm2", types.Float64),
 ]
 
 mart_today_stats_columns = [

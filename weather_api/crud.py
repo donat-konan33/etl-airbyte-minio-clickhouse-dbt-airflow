@@ -212,20 +212,35 @@ def get_stats(
     # champ de group by selon level
     group_field = Model.c.reg_name if level == "region" else Model.c.department
 
-    # requête ORM
-    query = (
-        db.query(
-            group_field.label("geo_name"),
-            func.round(func.avg(Model.c.temp), 1).label("temperature"), #°C
-            func.round(func.avg(Model.c.humidity), 1).label("humidity"), #%
-            func.round(func.avg(Model.c.windspeed), 1).label("windspeed"), #kph
-            func.round(func.avg(Model.c.pressure), 1).label("pressure"), #mb
-            func.round(func.avg(Model.c.cloudcover), 1).label("cloudcover"), #%
-            func.round(func.avg(Model.c.solarradiation), 1).label("solarradiation"), #W/m²
-            func.round(func.avg(Model.c.solarenergy_kwhpm2), 2).label("solarenergy"), #kWh/m²
-        )
-        .group_by(group_field)
-    )
+    # colonnes disponibles dans le modèle
+    available_columns = set(col.name for col in Model.columns)
 
-    result = query.all()  # ORM → récupère tous les résultats
-    return [dict(row._mapping) for row in result]  # row._mapping permet de transformer en dict
+    # construire la requête avec seulement les colonnes disponibles
+    query = db.query(
+        group_field.label("geo_name"),
+    )
+    if "temp" in available_columns:
+        query = query.add_columns(func.round(func.avg(Model.c.temp), 1).label("temperature"))
+    if "humidity" in available_columns:
+        query = query.add_columns(func.round(func.avg(Model.c.humidity), 1).label("humidity"))
+    if "windspeed" in available_columns:
+        query = query.add_columns(func.round(func.avg(Model.c.windspeed), 1).label("windspeed"))
+    if "pressure" in available_columns:
+        query = query.add_columns(func.round(func.avg(Model.c.pressure), 1).label("pressure"))
+    if "cloudcover" in available_columns:
+        query = query.add_columns(func.round(func.avg(Model.c.cloudcover), 1).label("cloudcover"))
+    if "solarradiation" in available_columns:
+        query = query.add_columns(func.round(func.avg(Model.c.solarradiation), 1).label("solarradiation"))
+    if "solarenergy_kwhpm2" in available_columns:
+        query = query.add_columns(func.round(func.avg(Model.c.solarenergy_kwhpm2), 2).label("solarenergy"))
+
+    query = query.group_by(group_field)
+
+    result = query.all()
+    if not result:
+        return []
+
+    if hasattr(result[0], '_mapping'):  # row._mapping permettrait de transformer en dict
+        return [dict(row._mapping) for row in result]
+    else:
+        return [dict(row) for row in result]
