@@ -101,7 +101,20 @@ def _read_root():
 
 @app.get("/health")
 def _health_check():
-    return {"status": "ok"}
+    db = make_session(engine)
+    try:
+        db.execute("SELECT 1")
+        return {
+            "status": "ok",
+            "database": "ok"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database unavailable {str(e)}"
+        )
+    finally:
+        db.close()
 
 @app.get("/get_data", tags="raw-data", dependencies=dependencies)
 def _get_data(db: Session = Depends(get_db)):
@@ -194,6 +207,7 @@ def _get_stats(
     if period not in ("today", "next3days"):
         raise HTTPException(status_code=400, detail="period must be 'today' or 'next3days'")
 
+    #get_stats from crud
     data = get_stats(level=level, period=period, top=top, db=db)
     if not data:
         raise HTTPException(status_code=404, detail="Stats data not found")
