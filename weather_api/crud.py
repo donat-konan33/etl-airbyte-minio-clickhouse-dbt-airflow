@@ -7,6 +7,9 @@ from sqlalchemy import text, func, desc, asc
 from models import mart_newdata_, archived_data, mart_today_stats, mart_next_3_days_stats, mart_today, mart_next_3_days
 from sqlalchemy.ext.asyncio import AsyncSession, AsyncConnection # for later use with FastAPI and async calls
 
+PANEL_AREA_M2 = 2.7
+PANEL_EFFICIENCY = 0.217
+
 
 def get_data(db: Session):
     """Get daily extracted data from the table"""
@@ -107,18 +110,24 @@ def get_region_sunshine_data(db: Session, region:str):
 
 def get_solarenergy_agg_pday(db: Session, department:str):
     """
-       We take into account the calculation over 8 days as recorded
-       Panel area = 2.7 m²
-       Panel efficiency = 21.7%
+    Estimate panel energy from the average solar energy recorded for a department.
+
+    The estimate uses a 2.7 m² panel and the 21.7% maximum efficiency specified
+    for the Trina Solar TSM-DE19R. It does not account for installation angle,
+    shading, temperature, inverter losses, or other real-world system losses.
     """
     result = (
     db.query(
         mart_newdata_.c.department,
         func.avg(mart_newdata_.c.solarenergy_kwhpm2) \
             .label("solarenergy_kwhpm2"),
-        (func.avg(mart_newdata_.c.solarenergy_kwhpm2) * 2.7) \
+        (func.avg(mart_newdata_.c.solarenergy_kwhpm2) * PANEL_AREA_M2) \
             .label("available_solarenergy_kwhc"),
-        (func.avg(mart_newdata_.c.solarenergy_kwhpm2) * 2.7 * 0.217) \
+        (
+            func.avg(mart_newdata_.c.solarenergy_kwhpm2)
+            * PANEL_AREA_M2
+            * PANEL_EFFICIENCY
+        ) \
             .label("real_production_kwhpday"),
     )
     .where(mart_newdata_.c.department == department)
