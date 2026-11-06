@@ -39,6 +39,51 @@ Airbyte est conservé comme référence historique et optionnelle dans le guide 
 - Base métadonnée : PostgreSQL
 - Runtime : Docker Compose
 
+### Architecture du pipeline Data Engineering
+
+```mermaid
+flowchart LR
+    source["API météo Visual Crossing"]
+
+    subgraph orchestration["Orchestration — Apache Airflow"]
+        scheduler["Scheduler Airflow"]
+        etl["DAG python_etl<br/>extraction et normalisation"]
+        dbt_task["DAG dbt_models_clickhouse<br/>dbt build"]
+        scheduler --> etl
+        scheduler --> dbt_task
+    end
+
+    source --> etl
+    etl --> parquet["Fichiers Parquet bruts<br/>bucket weather"]
+    etl --> raw_weather["ClickHouse<br/>raw_weather_"]
+
+    reference["ClickHouse<br/>raw_depcode_ — référentiel départements"]
+    bootstrap["Bootstrap Airflow<br/>création/validation des tables brutes"]
+    bootstrap --> reference
+
+    raw_weather --> staging["dbt — staging et intermediate"]
+    reference --> staging
+    staging --> marts["dbt — mart_newdata_"]
+    marts --> archive["archived_data<br/>historique incrémental"]
+    marts --> reporting["mart_today / mart_next_3_days<br/>et tables statistiques"]
+    dbt_task -. lit .-> raw_weather
+    dbt_task -. construit .-> marts
+
+    reporting --> api["FastAPI<br/>API météo et solaire"]
+    marts --> api
+    archive --> api
+
+    airflow_db[("PostgreSQL<br/>métadonnées Airflow")]
+    scheduler -. métadonnées .-> airflow_db
+```
+
+Le DAG `python_etl` charge les données normalisées en parallèle dans MinIO
+(Parquet) et dans la table brute `raw_weather_` de ClickHouse. dbt s'appuie sur
+`raw_weather_` et le référentiel `raw_depcode_` pour produire les modèles
+analytiques consommés par l'API. PostgreSQL est réservé aux métadonnées
+d'orchestration d'Airflow ; il ne stocke pas les données météo. Airbyte reste
+une intégration historique et optionnelle, détaillée dans [airbyte/README.md](airbyte/README.md).
+
 ## Technologies utilisées
 
 - Python

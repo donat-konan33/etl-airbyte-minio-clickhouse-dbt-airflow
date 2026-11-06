@@ -35,6 +35,54 @@ L'API utilise plusieurs tables ClickHouse :
 - `users` : données d'authentification des utilisateurs
 - `raw_depcode` : données de référence des départements et localisations
 
+## Architecture de l'API et accès aux tables
+
+```mermaid
+flowchart LR
+    client["Client HTTP"]
+    key["X-API-Key<br/>routes de données"]
+    app["FastAPI<br/>main.py"]
+    routes["Endpoints GET<br/>météo, solaire, géographie, statistiques"]
+    crud["crud.py<br/>requêtes et agrégations SQLAlchemy"]
+    models["models.py<br/>tables et colonnes mappées"]
+    engine["database.py<br/>engine ClickHouse"]
+
+    client --> app
+    app -->|"vérifie la clé"| key
+    app --> routes
+    routes --> crud
+    crud --> models
+    models --> engine
+    engine --> ch[("ClickHouse")]
+
+    subgraph provisioning["Création et alimentation — hors API"]
+        airflow["Airflow / ETL"]
+        ensure["ClickHouseQueries.ensure_table_exists()"]
+        raw["Tables brutes<br/>raw_weather_ et raw_depcode_"]
+        dbt["dbt build"]
+        marts["Tables analytiques<br/>mart_newdata_, archived_data,<br/>mart_today*, mart_next_3_days*"]
+        airflow --> ensure --> raw
+        raw --> dbt --> marts
+    end
+
+    raw --> ch
+    marts --> ch
+```
+
+Les endpoints de données suivent le trajet `main.py` → `crud.py` → modèles
+SQLAlchemy → ClickHouse. `/` et `/health` sont publics ; les endpoints de
+données exigent l'en-tête `X-API-Key`. `models.py` déclare ou réfléchit les
+tables et leurs colonnes, mais ne les crée pas dans la base.
+
+La création des tables brutes est assurée par l'ETL/Airflow :
+`ClickHouseQueries.ensure_table_exists()` crée `raw_weather_` et
+`raw_depcode_` si nécessaire, puis les données sont chargées dans ClickHouse.
+dbt construit les tables analytiques que l'API consulte. L'API est donc en
+lecture seule : elle n'expose pas de route de création de table et n'appelle
+pas `metadata.create_all()`. Les classes SQLAlchemy telles que `Users` et
+`Location` sont des déclarations de modèles, pas un mécanisme de création
+automatique au démarrage de l'API.
+
 ## Endpoints de l'API
 
 ### Endpoints généraux
